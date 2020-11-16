@@ -639,7 +639,7 @@ class TapEmitMessageQueue {
 	}
 
 	runEmitQueue() {
-		if(!navigator.onLine) {
+		if(!navigator.onLine || !module.exports.taptalk.isConnected()) {
 			this.isRunningMessageQueue = false;
 		}else {
 			this.isRunningMessageQueue = true;
@@ -724,7 +724,8 @@ exports.taptalk = {
         let data = {
             // _tapTalkEmitMessageQueue: tapTalkEmitMessageQueue,
             _taptalkRooms: tapTalkRooms,
-            _tapTalkRoomListHashmap: tapTalkRoomListHashmap
+            _tapTalkRoomListHashmap: tapTalkRoomListHashmap,
+            _emitQueuue: tapEmitMsgQueue.emitQueue
         }
 
         return data; 
