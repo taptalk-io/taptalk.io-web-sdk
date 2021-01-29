@@ -2055,7 +2055,7 @@ exports.tapCoreMessageManager  = {
         return _MESSAGE_MODEL;
     },
 
-    constructTapTalkMessageModelWithQuote : (messageBody, room, messageType, messageData, quotedMessage = false, quoteTitle = false, quoteContent = false, quoteImageUrl = false, localID = null) => {
+    constructTapTalkMessageModelWithQuote : (messageBody, room, messageType, messageData, quotedMessage = false, localID = null, quoteTitle = false, quoteContent = false, quoteImageUrl = false, ) => {
         const _MESSAGE_MODEL = {
             messageID: MESSAGE_ID,
             localID: "",
@@ -2251,9 +2251,13 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    sendCustomMessage : (body, data, messageType, room, callback) => {
+    sendCustomMessage : (body, data, messageType, room, callback, quotedMessage = false) => {
         if(this.taptalk.isAuthenticated()) {
-            this.tapCoreMessageManager.constructTapTalkMessageModel(body, room, messageType, data);
+            let MESSAGE_MODEL =  quotedMessage ? 
+                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(body, room, messageType, data, quotedMessage)
+                :
+                this.tapCoreMessageManager.constructTapTalkMessageModel(body, room, messageType, data)
+            ;
 
             let emitData = {
                 eventName: SOCKET_NEW_MESSAGE,
@@ -2300,7 +2304,6 @@ exports.tapCoreMessageManager  = {
     },
 
     sendTextMessage : (messageBody, room, callback, quotedMessage = false) => {
-        console.log("quoted", quotedMessage)
         if(this.taptalk.isAuthenticated()) {
             let _MESSAGE_MODEL =  quotedMessage ? 
                 this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "", quotedMessage)
@@ -2439,7 +2442,7 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    actionSendImageMessage : (file, caption, room, callback, isSendEmit) => {
+    actionSendImageMessage : (file, caption, room, callback, isSendEmit, quotedMessage) => {
         if(file.size > projectConfigs.core.chatMediaMaxFileSize) {
             callback.onError('90302', "Maximum file size is "+bytesToSize(projectConfigs.core.chatMediaMaxFileSize));
         }else {
@@ -2496,7 +2499,11 @@ exports.tapCoreMessageManager  = {
                         caption: caption
                     };
 
-                    _this.tapCoreMessageManager.constructTapTalkMessageModel(bodyValueImage, room, CHAT_MESSAGE_TYPE_IMAGE, data, currentLocalID);
+                    let MESSAGE_MODEL =  quotedMessage ? 
+                        _this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValueImage, room, CHAT_MESSAGE_TYPE_IMAGE, data, quotedMessage, currentLocalID)
+                        :
+                        _this.tapCoreMessageManager.constructTapTalkMessageModel(bodyValueImage, room, CHAT_MESSAGE_TYPE_IMAGE, data, currentLocalID)
+                    ;
                     
                     let _message = {...MESSAGE_MODEL};
 
@@ -2552,12 +2559,12 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    sendImageMessage : (file, caption, room, callback) => {
-        this.tapCoreMessageManager.actionSendImageMessage(file, caption, room, callback, true);
+    sendImageMessage : (file, caption, room, callback, quotedMessage = false) => {
+        this.tapCoreMessageManager.actionSendImageMessage(file, caption, room, callback, true, quotedMessage);
     },
 
     sendImageMessageWithoutEmit : (file, caption, room, callback) => {
-        this.tapCoreMessageManager.actionSendImageMessage(file, caption, room, callback, false);
+        this.tapCoreMessageManager.actionSendImageMessage(file, caption, room, callback, false, quotedMessage);
     },
 
     sendImageMessageQuotedMessage : (file, caption, room, quotedMessage, callback) => {
@@ -2592,7 +2599,7 @@ exports.tapCoreMessageManager  = {
         });
     },
 
-    actionSendVideoMessage : (file, caption, room, callback, isSendEmit) => {
+    actionSendVideoMessage : (file, caption, room, callback, isSendEmit, quotedMessage) => {
         if(file.size > projectConfigs.core.chatMediaMaxFileSize) {
             callback.onError('90302', "Maximum file size is "+bytesToSize(projectConfigs.core.chatMediaMaxFileSize));
         }else {
@@ -2646,8 +2653,12 @@ exports.tapCoreMessageManager  = {
                     caption: caption,
                     duration: value.duration
                 };
-    
-                _this.tapCoreMessageManager.constructTapTalkMessageModel(bodyValueVideo, room, CHAT_MESSAGE_TYPE_VIDEO, data, currentLocalID);
+
+                let MESSAGE_MODEL =  quotedMessage ? 
+                    _this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValueVideo, room, CHAT_MESSAGE_TYPE_VIDEO, data, quotedMessage, currentLocalID)
+                    :
+                    _this.tapCoreMessageManager.constructTapTalkMessageModel(bodyValueVideo, room, CHAT_MESSAGE_TYPE_VIDEO, data, currentLocalID)
+                ;
                 
                 let _message = {...MESSAGE_MODEL};
     
@@ -2705,12 +2716,12 @@ exports.tapCoreMessageManager  = {
         }
     },
     
-    sendVideoMessage : (file, caption, room, callback) => {
-        this.tapCoreMessageManager.actionSendVideoMessage(file, caption, room, callback, true);
+    sendVideoMessage : (file, caption, room, callback, quotedMessage = false) => {
+        this.tapCoreMessageManager.actionSendVideoMessage(file, caption, room, callback, true, quotedMessage);
     },
 
-    sendVideoMessageWithoutEmit : (file, caption, room, callback) => {
-        this.tapCoreMessageManager.actionSendVideoMessage(file, caption, room, callback, false);
+    sendVideoMessageWithoutEmit : (file, caption, room, callback, quotedMessage = false) => {
+        this.tapCoreMessageManager.actionSendVideoMessage(file, caption, room, callback, false, quotedMessage);
     },
 
     sendVideoMessageQuotedMessage : (videoUri, caption, room, quotedMessage, callback) => {
@@ -2745,7 +2756,7 @@ exports.tapCoreMessageManager  = {
         });
     },
 
-    actionSendFileMessage : (file, room, callback, isSendEmit) => {
+    actionSendFileMessage : (file, room, callback, isSendEmit, quotedMessage) => {
         if(file.size > projectConfigs.core.chatMediaMaxFileSize) {
 			callback.onError('90302', "Maximum file size is "+bytesToSize(projectConfigs.core.chatMediaMaxFileSize));
 		}else {
@@ -2765,7 +2776,11 @@ exports.tapCoreMessageManager  = {
                 fileID: ""
             };
 
-            this.tapCoreMessageManager.constructTapTalkMessageModel(bodyValue, room, CHAT_MESSAGE_TYPE_FILE, data, currentLocalID);
+            let MESSAGE_MODEL =  quotedMessage ? 
+                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValue, room, CHAT_MESSAGE_TYPE_FILE, data, currentLocalID, quotedMessage)
+                :
+                this.tapCoreMessageManager.constructTapTalkMessageModel(bodyValue, room, CHAT_MESSAGE_TYPE_FILE, data, currentLocalID)
+            ;
             
             let _message = {...MESSAGE_MODEL};
 
@@ -2818,12 +2833,12 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    sendFileMessage : (file, room, callback) => {
-        this.tapCoreMessageManager.actionSendFileMessage(file, room, callback, true);
+    sendFileMessage : (file, room, callback, quotedMessage = false) => {
+        this.tapCoreMessageManager.actionSendFileMessage(file, room, callback, true, quotedMessage);
     },
 
-    sendFileMessageWithoutEmit : (file, room, callback) => {
-        this.tapCoreMessageManager.actionSendFileMessage(file, room, callback, false);
+    sendFileMessageWithoutEmit : (file, room, callback, quotedMessage = false) => {
+        this.tapCoreMessageManager.actionSendFileMessage(file, room, callback, false, quotedMessage);
     },
 
     sendFileMessageQuotedMessage : (file, room, quotedMessage, callback) => {
