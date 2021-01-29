@@ -1,4 +1,4 @@
-/* 26-10-2020 15:50  v1.8.8*/
+/* 29-01-2021 18:00  v1.9.0*/
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -188,64 +188,6 @@ const CHAT_MESSAGE_TYPE_SYSTEM_MESSAGE = 9001;
 const CHAT_MESSAGE_TYPE_UNREAD_MESSAGE_IDENTIFIER = 9002;
 
 const MESSAGE_ID = "0";
-const MESSAGE_MODEL = {
-    messageID: MESSAGE_ID,
-    localID: "",
-    type: 0,
-    body: "",
-    data: "",
-    filterID: "",
-    isHidden: false,
-    quote: {
-        title: "",
-        content: "",
-        imageURL: "",
-        fileID: "",
-        fileType: ""
-    },
-    replyTo: {
-        userID: "0",
-        xcUserID: "",
-        fullname: "",
-        messageID: "0",
-        localID: "",
-        messageType: 0
-    },
-    forwardFrom: {
-        userID: "0",
-        xcUserID: "",
-        fullname: "",
-        messageID: "0",
-        localID: ""
-    },
-    room: {
-        roomID: "",
-        name: "",
-        type: "", // 1 is personal; 2 is group
-        imageURL: {
-            thumbnail: "",
-            fullsize: ""
-        },
-        color: "",
-        deleted: 0,
-        isDeleted: false
-    },
-    user: null,
-    recipientID: "0",
-    action: "",
-    target: {
-        targetType: "",
-        targetID: "0",
-        targetXCID: "",
-        targetName: ""
-    },
-    isSending: null,
-    isDelivered: null,
-    isRead: null,
-    isDeleted: null,
-    created: new Date().valueOf(),
-    updated: new Date().valueOf()
-}
 
 function doXMLHTTPRequest(method, header, url, data, isMultipart= false) {
     return new Promise(function (resolve, reject) {
@@ -417,12 +359,15 @@ function setUserDataStorage(response) {
 
 
 function guid() {
-    function s4() {
-        return Math.floor((1 + Math.random()) * 0x10000)
-        .toString(16)
-        .substring(1);
+    let guidChar = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_";
+    let result = "";
+    let guidCharLength = guidChar.length;
+    
+    for (var i = 0; i < 32; i++) {
+      result += guidChar.charAt(Math.floor(Math.random() * guidCharLength));
     }
-    return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+    console.log(result)
+    return result;
 }
 
 function isFileAllowed(fileType, file) {
@@ -2010,6 +1955,65 @@ exports.tapCoreChatRoomManager = {
 
 exports.tapCoreMessageManager  = {
     constructTapTalkMessageModel : (messageBody, room, messageType, messageData, localID = null) => {
+        const _MESSAGE_MODEL = {
+            messageID: MESSAGE_ID,
+            localID: "",
+            type: 0,
+            body: "",
+            data: "",
+            filterID: "",
+            isHidden: false,
+            quote: {
+                title: "",
+                content: "",
+                imageURL: "",
+                fileID: "",
+                fileType: ""
+            },
+            replyTo: {
+                userID: "0",
+                xcUserID: "",
+                fullname: "",
+                messageID: "0",
+                localID: "",
+                messageType: 0
+            },
+            forwardFrom: {
+                userID: "0",
+                xcUserID: "",
+                fullname: "",
+                messageID: "0",
+                localID: ""
+            },
+            room: {
+                roomID: "",
+                name: "",
+                type: "", // 1 is personal; 2 is group
+                imageURL: {
+                    thumbnail: "",
+                    fullsize: ""
+                },
+                color: "",
+                deleted: 0,
+                isDeleted: false
+            },
+            user: null,
+            recipientID: "0",
+            action: "",
+            target: {
+                targetType: "",
+                targetID: "0",
+                targetXCID: "",
+                targetName: ""
+            },
+            isSending: null,
+            isDelivered: null,
+            isRead: null,
+            isDeleted: null,
+            created: new Date().valueOf(),
+            updated: new Date().valueOf()
+        }
+        
         let generateRecipient = () => {
 			if(room.type === 1) {
                 let roomSplit = room.roomID.split("-");
@@ -2029,39 +2033,138 @@ exports.tapCoreMessageManager  = {
 			return messageData;
 		}
                 
-        MESSAGE_MODEL["localID"] = localID !== null ? localID : guidVal;
-        MESSAGE_MODEL["user"] = this.taptalk.getTaptalkActiveUser();
-        MESSAGE_MODEL["type"] = messageType;
-        MESSAGE_MODEL["body"] = encryptKey(messageBody, localID !==null ? localID : guidVal);
-        MESSAGE_MODEL["recipientID"] = generateRecipient();
-        MESSAGE_MODEL["data"] = generateData();
-        MESSAGE_MODEL["created"] = new Date().valueOf();
-        MESSAGE_MODEL["updated"] = new Date().valueOf();
+        _MESSAGE_MODEL["localID"] = localID !== null ? localID : guidVal;
+        _MESSAGE_MODEL["user"] = this.taptalk.getTaptalkActiveUser();
+        _MESSAGE_MODEL["type"] = messageType;
+        _MESSAGE_MODEL["body"] = encryptKey(messageBody, localID !==null ? localID : guidVal);
+        _MESSAGE_MODEL["recipientID"] = generateRecipient();
+        _MESSAGE_MODEL["data"] = generateData();
+        _MESSAGE_MODEL["created"] = new Date().valueOf();
+        _MESSAGE_MODEL["updated"] = new Date().valueOf();
 		//set room model
-		MESSAGE_MODEL["room"] = room;
-		//end of set room model
+		_MESSAGE_MODEL["room"] = room;
+        //end of set room model
         
-        this.tapCoreMessageManager.constructMessageStatus(true, false, false, false);
+        //message status
+        _MESSAGE_MODEL["isSending"] = true;
+        _MESSAGE_MODEL["isDelivered"] = false;
+        _MESSAGE_MODEL["isRead"] = false;
+        _MESSAGE_MODEL["isDeleted"] = false;
+        //message status
+        
+        return _MESSAGE_MODEL;
     },
 
-    constructTapTalkMessageModelWithQuote : (messageBody, room, messageType, messageData, quotedMessage) => {
-        let roomSplit = room.split("-");
-        let recipient = roomSplit[0] === this.taptalk.getTaptalkActiveUser().userID ? roomSplit[1] : roomSplit[0];
-        MESSAGE_MODEL["user"] = this.taptalk.getTaptalkActiveUser();
-        MESSAGE_MODEL["type"] = messageType;
-        MESSAGE_MODEL["body"] = messageBody;
-        MESSAGE_MODEL["room"]["roomID"] = room;
-        MESSAGE_MODEL["room"]["type"] = room.includes('g') ? 2 : 1;
-        MESSAGE_MODEL["recipientID"] = recipient;
-        MESSAGE_MODEL["data"] = messageData;
-        MESSAGE_MODEL["quote"]["title"] = quotedMessage.title;
-        MESSAGE_MODEL["quote"]["content"] = quotedMessage.content;
-        MESSAGE_MODEL["quote"]["imageURL"] = quotedMessage.imageURL;
-        MESSAGE_MODEL["quote"]["fileID"] = quotedMessage.fileID;
-        MESSAGE_MODEL["quote"]["fileType"] = quotedMessage.fileType;
-        MESSAGE_MODEL["created"] = new Date().valueOf();
-        MESSAGE_MODEL["updated"] = new Date().valueOf();
-        this.tapCoreMessageManager.constructMessageStatus(false, false, false, false);
+    constructTapTalkMessageModelWithQuote : (messageBody, room, messageType, messageData, quotedMessage = false, quoteTitle = false, quoteContent = false, quoteImageUrl = false, localID = null) => {
+        const _MESSAGE_MODEL = {
+            messageID: MESSAGE_ID,
+            localID: "",
+            type: 0,
+            body: "",
+            data: "",
+            filterID: "",
+            isHidden: false,
+            quote: {
+                title: "",
+                content: "",
+                imageURL: "",
+                fileID: "",
+                fileType: ""
+            },
+            replyTo: {
+                userID: "0",
+                xcUserID: "",
+                fullname: "",
+                messageID: "0",
+                localID: "",
+                messageType: 0
+            },
+            forwardFrom: {
+                userID: "0",
+                xcUserID: "",
+                fullname: "",
+                messageID: "0",
+                localID: ""
+            },
+            room: {
+                roomID: "",
+                name: "",
+                type: "", // 1 is personal; 2 is group
+                imageURL: {
+                    thumbnail: "",
+                    fullsize: ""
+                },
+                color: "",
+                deleted: 0,
+                isDeleted: false
+            },
+            user: null,
+            recipientID: "0",
+            action: "",
+            target: {
+                targetType: "",
+                targetID: "0",
+                targetXCID: "",
+                targetName: ""
+            },
+            isSending: null,
+            isDelivered: null,
+            isRead: null,
+            isDeleted: null,
+            created: new Date().valueOf(),
+            updated: new Date().valueOf()
+        };
+        
+        let generateRecipient = () => {
+			if(room.type === 1) {
+                let roomSplit = room.roomID.split("-");
+				return roomSplit[0] === this.taptalk.getTaptalkActiveUser().userID ? roomSplit[1] : roomSplit[0];
+			}else {
+				return "0";
+			}
+        }
+        
+        let guidVal = guid();
+
+        let generateData = () => {
+			if(typeof messageData === 'object') {
+				return encryptKey(JSON.stringify(messageData), localID !== null ? localID : guidVal);
+			}
+
+			return messageData;
+		}
+                
+        _MESSAGE_MODEL["localID"] = localID !== null ? localID : guidVal;
+        _MESSAGE_MODEL["user"] = this.taptalk.getTaptalkActiveUser();
+        _MESSAGE_MODEL["type"] = messageType;
+        _MESSAGE_MODEL["body"] = encryptKey(messageBody, localID !==null ? localID : guidVal);
+        _MESSAGE_MODEL["recipientID"] = generateRecipient();
+        _MESSAGE_MODEL["data"] = generateData();
+        _MESSAGE_MODEL["created"] = new Date().valueOf();
+        _MESSAGE_MODEL["updated"] = new Date().valueOf();
+		//set room model
+		_MESSAGE_MODEL["room"] = room;
+        //end of set room model
+        
+        //message status
+        _MESSAGE_MODEL["isSending"] = true;
+        _MESSAGE_MODEL["isDelivered"] = false;
+        _MESSAGE_MODEL["isRead"] = false;
+        _MESSAGE_MODEL["isDeleted"] = false;
+        //message status
+
+        // reply to
+        if(quotedMessage) {
+            _MESSAGE_MODEL["replyTo"]["fullname"] = "rey";
+            _MESSAGE_MODEL["replyTo"]["localID"] = "a5fa1559-4923-2411-a15e-d13712a6a130";
+            _MESSAGE_MODEL["replyTo"]["messageID"] = "551674";
+            _MESSAGE_MODEL["replyTo"]["messageType"] = 1004;
+            _MESSAGE_MODEL["replyTo"]["userID"] = "34467";
+            _MESSAGE_MODEL["replyTo"]["xcUserID"] = "agent:24";
+        }
+        // reply to
+        
+        return _MESSAGE_MODEL;
     },
 
     constructTapTalkProductModelWithProductID : (id, name, currency, price, rating, weight, description, imageUrl, buttonOption1Text, buttonOption2Text, buttonOption1Color, buttonOption2Color) => {
@@ -2178,9 +2281,13 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    sendTextMessageWithoutEmit : (messageBody, room, callback) => {
+    sendTextMessageWithoutEmit : (messageBody, room, callback, quotedMessage = false) => {
         if(this.taptalk.isAuthenticated()) {
-            this.tapCoreMessageManager.constructTapTalkMessageModel(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "");
+            let MESSAGE_MODEL =  quotedMessage ? 
+                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "", quotedMessage)
+                :
+                this.tapCoreMessageManager.constructTapTalkMessageModel(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "")
+            ;
 
             let _message = {...MESSAGE_MODEL};
 
@@ -2192,27 +2299,32 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-
-    sendTextMessage : (messageBody, room, callback) => {
+    sendTextMessage : (messageBody, room, callback, quotedMessage = false) => {
+        console.log("quoted", quotedMessage)
         if(this.taptalk.isAuthenticated()) {
-            this.tapCoreMessageManager.constructTapTalkMessageModel(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "");
+            let _MESSAGE_MODEL =  quotedMessage ? 
+                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "", quotedMessage)
+                :
+                this.tapCoreMessageManager.constructTapTalkMessageModel(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "")
+            ;
 
             let emitData = {
                 eventName: SOCKET_NEW_MESSAGE,
-                data: MESSAGE_MODEL
+                data: _MESSAGE_MODEL
             };
                     
-            let _message = {...MESSAGE_MODEL};
+            let _message = {..._MESSAGE_MODEL};
 
             _message.body = messageBody;
         
             // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
 
-            this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
+            // ini
+            // this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
 
             callback(_message);
                 
-            tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
+            // tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
         }
     },
 
