@@ -440,7 +440,6 @@ function handleEmit(emit) {
 }
 
 var handleNewMessage = (message) => {
-    console.log("new message", {...message})
     let _this = this;
     let user = this.taptalk.getTaptalkActiveUser();
 
@@ -465,8 +464,8 @@ var handleNewMessage = (message) => {
 		message.data = JSON.parse(decryptKey(message.data, message.localID));
     }
     
-    if(message.replyTo.localID !== "") {
-		// message.quote.content = decryptKey(message.quote.content, message.localID);
+    if(message.quote.content !== "") {
+		message.quote.content = decryptKey(message.quote.content, message.localID);
 	}
 
 	let isRoomExist = tapTalkRooms[message.room.roomID];
@@ -520,7 +519,7 @@ var handleUpdateMessage = (message) => {
         message.data = JSON.parse(decryptKey(message.data, message.localID));
     }
     
-    if(message.replyTo.localID !== "") {
+    if(message.quote.content !== "") {
         message.quote.content = decryptKey(message.quote.content, message.localID);
     }
 
@@ -2177,7 +2176,7 @@ exports.tapCoreMessageManager  = {
 
         if(quotedMessage) {
             _MESSAGE_MODEL["quote"]["content"] = quoteContent ? quoteContent : _quoteContent;
-            _MESSAGE_MODEL["quote"]["content"] = encryptKey(_MESSAGE_MODEL["quote"]["content"], quotedMessage.localID);
+            _MESSAGE_MODEL["quote"]["content"] = encryptKey(_MESSAGE_MODEL["quote"]["content"], _MESSAGE_MODEL["localID"]);
             _MESSAGE_MODEL["quote"]["fileID"] = isFileUsingFileID ? quotedMessage.data.fileID : "";
             _MESSAGE_MODEL["quote"]["fileType"] = isFileUsingFileID ? (quotedMessage.type === CHAT_MESSAGE_TYPE_FILE ? "file" : (quotedMessage.type === CHAT_MESSAGE_TYPE_IMAGE ? "image" : video)) : "";
             _MESSAGE_MODEL["quote"]["imageURL"] = quotedMessage.data.fileURL ? quotedMessage.data.fileURL : "";
@@ -2299,6 +2298,10 @@ exports.tapCoreMessageManager  = {
 
             _message.body = body;
             _message.data = data;
+
+            if(quotedMessage) {
+                _message.quote.content = body;
+            }
         
             // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
 
@@ -2327,6 +2330,10 @@ exports.tapCoreMessageManager  = {
             let _message = {...MESSAGE_MODEL};
 
             _message.body = messageBody;
+
+            if(quotedMessage) {
+                _message.quote.content = messageBody;
+            }
             
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
 
@@ -2350,15 +2357,18 @@ exports.tapCoreMessageManager  = {
             let _message = {..._MESSAGE_MODEL};
 
             _message.body = messageBody;
+
+            if(quotedMessage) {
+                _message.quote.content = messageBody;
+            }
         
             // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
 
-            // this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
-            console.log("asdasd", _message)
-            // console.log("uwau", decryptKey(_message.quote.content, console.log("asdasd", _message))  
+            this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
+            
             callback(_message);
                 
-            // tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
+            tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
         }
     },
 
@@ -2396,6 +2406,10 @@ exports.tapCoreMessageManager  = {
 			
             _message.body = bodyValueLocation;
             _message.data = data;
+
+            if(quotedMessage) {
+                _message.quote.content = messageBody;
+            }
 
             // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
@@ -2542,6 +2556,10 @@ exports.tapCoreMessageManager  = {
                     _message.data = data;
                     _message.bytesUpload = 0;
                     _message.percentageUpload = 0;
+
+                    if(quotedMessage) {
+                        _message.quote.content = bodyValueImage;
+                    }
                     
                     _this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
 
@@ -2697,6 +2715,10 @@ exports.tapCoreMessageManager  = {
                 _message.data = data;
                 _message.bytesUpload = 0;
                 _message.percentageUpload = 0;
+
+                if(quotedMessage) {
+                    _message.quote.content = bodyValueVideo;
+                }
                 
                 _this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
                 
@@ -2819,6 +2841,10 @@ exports.tapCoreMessageManager  = {
             _message.data = data;
             _message.bytesUpload = 0;
             _message.percentageUpload = 0;
+
+            if(quotedMessage) {
+                _message.quote.content = bodyValue;
+            }
             
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
 
@@ -2974,7 +3000,7 @@ exports.tapCoreMessageManager  = {
 										messageIndex.data = JSON.parse(decryptKey(messageIndex.data, messageIndex.localID));
 									}
 
-									if(response.data.messages[i].replyTo.localID !== "") {
+									if(response.data.messages[i].quote.content !== "") {
 										var messageIndex = response.data.messages[i];
 										messageIndex.quote.content = decryptKey(messageIndex.quote.content, messageIndex.localID)
 									}
@@ -3039,7 +3065,7 @@ exports.tapCoreMessageManager  = {
 									}
 								}
 
-								if(responseMessage[i].replyTo.localID !== "") {
+								if(responseMessage[i].quote.content !== "") {
 									var messageIndex = responseMessage[i];
 									messageIndex.quote.content = decryptKey(messageIndex.quote.content, messageIndex.localID)
 								}
