@@ -366,7 +366,7 @@ function guid() {
     for (var i = 0; i < 32; i++) {
       result += guidChar.charAt(Math.floor(Math.random() * guidCharLength));
     }
-    console.log(result)
+
     return result;
 }
 
@@ -440,6 +440,7 @@ function handleEmit(emit) {
 }
 
 var handleNewMessage = (message) => {
+    console.log("new message", {...message})
     let _this = this;
     let user = this.taptalk.getTaptalkActiveUser();
 
@@ -465,7 +466,7 @@ var handleNewMessage = (message) => {
     }
     
     if(message.replyTo.localID !== "") {
-		message.quote.content = decryptKey(message.quote.content, message.localID);
+		// message.quote.content = decryptKey(message.quote.content, message.localID);
 	}
 
 	let isRoomExist = tapTalkRooms[message.room.roomID];
@@ -2055,7 +2056,7 @@ exports.tapCoreMessageManager  = {
         return _MESSAGE_MODEL;
     },
 
-    constructTapTalkMessageModelWithQuote : (messageBody, room, messageType, messageData, quotedMessage = false, localID = null, quoteTitle = false, quoteContent = false, quoteImageUrl = false, ) => {
+    constructTapTalkMessageModelWithQuote : (messageBody, room, messageType, messageData, quotedMessage = false, localID = null, quoteTitle = false, quoteContent = false, quoteImageUrl = false) => {
         const _MESSAGE_MODEL = {
             messageID: MESSAGE_ID,
             localID: "",
@@ -2153,17 +2154,47 @@ exports.tapCoreMessageManager  = {
         _MESSAGE_MODEL["isDeleted"] = false;
         //message status
 
-        // reply to
+        //quote
+        let isFileUsingFileID = !quotedMessage ? false : quotedMessage.type === CHAT_MESSAGE_TYPE_FILE || quotedMessage.type === CHAT_MESSAGE_TYPE_VIDEO || quotedMessage.type === CHAT_MESSAGE_TYPE_IMAGE;
+        let _quoteTitle = "";
+        let _quoteContent = "";
+
+        //title
+        if(quotedMessage.type === CHAT_MESSAGE_TYPE_FILE) {
+            _quoteTitle = quotedMessage.data.fileName.split(".")[0];
+        }else {
+            _quoteTitle = quotedMessage.user.fullname;
+        }
+        //title
+
+        //content
+        if(quotedMessage.type === CHAT_MESSAGE_TYPE_FILE) {
+            _quoteContent = bytesToSize(quotedMessage.data.size) + " " + quotedMessage.data.fileName.split(".")[quotedMessage.data.fileName.split(".").length - 1].toUpperCase();
+        }else {
+            _quoteContent = quotedMessage.body;
+        }
+        //content
+
         if(quotedMessage) {
-            _MESSAGE_MODEL["replyTo"]["fullname"] = "rey";
-            _MESSAGE_MODEL["replyTo"]["localID"] = "a5fa1559-4923-2411-a15e-d13712a6a130";
-            _MESSAGE_MODEL["replyTo"]["messageID"] = "551674";
-            _MESSAGE_MODEL["replyTo"]["messageType"] = 1004;
-            _MESSAGE_MODEL["replyTo"]["userID"] = "34467";
-            _MESSAGE_MODEL["replyTo"]["xcUserID"] = "agent:24";
+            _MESSAGE_MODEL["quote"]["content"] = quoteContent ? quoteContent : _quoteContent;
+            _MESSAGE_MODEL["quote"]["content"] = encryptKey(_MESSAGE_MODEL["quote"]["content"], quotedMessage.localID);
+            _MESSAGE_MODEL["quote"]["fileID"] = isFileUsingFileID ? quotedMessage.data.fileID : "";
+            _MESSAGE_MODEL["quote"]["fileType"] = isFileUsingFileID ? (quotedMessage.type === CHAT_MESSAGE_TYPE_FILE ? "file" : (quotedMessage.type === CHAT_MESSAGE_TYPE_IMAGE ? "image" : video)) : "";
+            _MESSAGE_MODEL["quote"]["imageURL"] = quotedMessage.data.fileURL ? quotedMessage.data.fileURL : "";
+            _MESSAGE_MODEL["quote"]["title"] = quoteTitle ? quoteTitle : _quoteTitle;
+        }
+        //quote
+
+        // reply to
+        if(quotedMessage && !quoteContent && !quoteTitle && !quoteImageUrl ) {
+            _MESSAGE_MODEL["replyTo"]["fullname"] = quotedMessage.user.fullname;
+            _MESSAGE_MODEL["replyTo"]["localID"] = quotedMessage.localID;
+            _MESSAGE_MODEL["replyTo"]["messageID"] = quotedMessage.messageID;
+            _MESSAGE_MODEL["replyTo"]["messageType"] = quotedMessage.type;
+            _MESSAGE_MODEL["replyTo"]["userID"] = quotedMessage.user.userID;
+            _MESSAGE_MODEL["replyTo"]["xcUserID"] = quotedMessage.user.xcUserID;
         }
         // reply to
-        
         return _MESSAGE_MODEL;
     },
 
@@ -2322,9 +2353,9 @@ exports.tapCoreMessageManager  = {
         
             // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
 
-            // ini
             // this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
-
+            console.log("asdasd", _message)
+            // console.log("uwau", decryptKey(_message.quote.content, console.log("asdasd", _message))  
             callback(_message);
                 
             // tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
