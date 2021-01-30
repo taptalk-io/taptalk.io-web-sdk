@@ -2354,20 +2354,19 @@ exports.tapCoreMessageManager  = {
                 data: _MESSAGE_MODEL
             };
                     
-            let _message = {..._MESSAGE_MODEL};
+            let _message = JSON.parse(JSON.stringify(_MESSAGE_MODEL));
 
             _message.body = messageBody;
 
             if(quotedMessage) {
-                _message.quote.content = messageBody;
+                _message.quote.content = quotedMessage.body;
             }
-        
             // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
 
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
             
             callback(_message);
-                
+            
             tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
         }
     },
