@@ -2574,17 +2574,25 @@ exports.tapCoreMessageManager  = {
                         onSuccess: (response) => {
                             if(response) {
                                 response.fileName = file.name;
-                                let _messageForCallback = {..._message};
+                                let _messageForCallback = JSON.parse(JSON.stringify(_message));
                                 response.thumbnail = thumbnailImage.split(',')[1];
                                 _messageForCallback.data = response;
                                 _messageForCallback.body = bodyValueImage;
+
+                                if(quotedMessage) {
+                                    _messageForCallback.quote.content = quotedMessage.body;
+                                }
                                 
                                 callback.onSuccess(_messageForCallback);
 
                                 if(isSendEmit) {
-                                    let _messageClone = {..._message};
-                                    _messageClone.data = encryptKey(JSON.stringify(response), _message.localID);
+                                    let _messageClone = JSON.parse(JSON.stringify(_message));
                                     _messageClone.body = encryptKey(_messageClone.body, _messageClone.localID);
+                                    _messageClone.data = encryptKey(JSON.stringify(response), _messageClone.localID);
+
+                                    if(quotedMessage) {
+                                        _messageClone.quote.content = encryptKey(quotedMessage.body, _messageClone.localID);
+                                    }
                                     
                                     // _this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_messageClone);
                                     
@@ -2733,20 +2741,28 @@ exports.tapCoreMessageManager  = {
                     onSuccess: (response) => {
                         if(response) {
                             response.fileName = file.name;
-                            let _messageForCallback = {..._message};
+                            let _messageForCallback = JSON.parse(JSON.stringify(_message));
                             response.thumbnail = videoThumbnail;
                             response.width = value.width;
                             response.height = value.height;
                             response.duration = value.duration;
                             _messageForCallback.data = response;
                             _messageForCallback.body = bodyValueVideo;
-                            
+
+                            if(quotedMessage) {
+                                _messageForCallback.quote.content = quotedMessage.body;
+                            }
+                                
                             callback.onSuccess(_messageForCallback);
     
                             if(isSendEmit) {
-                                let _messageClone = {..._message};
-                                _messageClone.data = encryptKey(JSON.stringify(response), _message.localID);
+                                let _messageClone = JSON.parse(JSON.stringify(_message));
                                 _messageClone.body = encryptKey(_messageClone.body, _messageClone.localID);
+                                _messageClone.data = encryptKey(JSON.stringify(response), _messageClone.localID);
+
+                                if(quotedMessage) {
+                                    _messageClone.quote.content = encryptKey(quotedMessage.body, _messageClone.localID);
+                                }
 
                                 // _this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_messageClone);
 
@@ -2831,7 +2847,7 @@ exports.tapCoreMessageManager  = {
             };
 
             let _MESSAGE_MODEL =  quotedMessage ? 
-                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValue, room, CHAT_MESSAGE_TYPE_FILE, data, currentLocalID, quotedMessage)
+                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValue, room, CHAT_MESSAGE_TYPE_FILE, data, quotedMessage, currentLocalID)
                 :
                 this.tapCoreMessageManager.constructTapTalkMessageModel(bodyValue, room, CHAT_MESSAGE_TYPE_FILE, data, currentLocalID)
             ;
@@ -2844,7 +2860,7 @@ exports.tapCoreMessageManager  = {
             _message.percentageUpload = 0;
 
             if(quotedMessage) {
-                _message.quote.content = bodyValue;
+                _message.quote.content = quotedMessage.body;
             }
             
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
@@ -2859,16 +2875,24 @@ exports.tapCoreMessageManager  = {
                 onSuccess: (response) => {
                     if(response) {
                         response.fileName = file.name;
-                        let _messageForCallback = {..._message};
+                        let _messageForCallback = JSON.parse(JSON.stringify(_message));
                         _messageForCallback.data = response;
                         _messageForCallback.body = bodyValue;
+
+                        if(quotedMessage) {
+                            _messageForCallback.quote.content = quotedMessage.body;
+                        }
                         
                         callback.onSuccess(_messageForCallback);
 
                         if(isSendEmit) {
-                            let _messageClone = {..._message};
+                            let _messageClone = JSON.parse(JSON.stringify(_message));
                             _messageClone.body = encryptKey(_messageClone.body, _messageClone.localID);
-                            _messageClone.data = encryptKey(JSON.stringify(response), _message.localID);
+                            _messageClone.data = encryptKey(JSON.stringify(response), _messageClone.localID);
+
+                            if(quotedMessage) {
+                                _messageClone.quote.content = encryptKey(quotedMessage.body, _messageClone.localID);
+                            }
 
                             // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_messageClone);
                             
@@ -2896,6 +2920,7 @@ exports.tapCoreMessageManager  = {
     },
 
     sendFileMessageWithoutEmit : (file, room, callback, quotedMessage = false) => {
+        console.log(file)
         this.tapCoreMessageManager.actionSendFileMessage(file, room, callback, false, quotedMessage);
     },
 
