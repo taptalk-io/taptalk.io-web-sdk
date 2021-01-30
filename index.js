@@ -2194,6 +2194,7 @@ exports.tapCoreMessageManager  = {
             _MESSAGE_MODEL["replyTo"]["xcUserID"] = quotedMessage.user.xcUserID;
         }
         // reply to
+        
         return _MESSAGE_MODEL;
     },
 
