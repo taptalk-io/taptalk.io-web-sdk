@@ -2178,8 +2178,9 @@ exports.tapCoreMessageManager  = {
             _MESSAGE_MODEL["quote"]["content"] = quoteContent ? quoteContent : _quoteContent;
             _MESSAGE_MODEL["quote"]["content"] = encryptKey(_MESSAGE_MODEL["quote"]["content"], _MESSAGE_MODEL["localID"]);
             _MESSAGE_MODEL["quote"]["fileID"] = isFileUsingFileID ? quotedMessage.data.fileID : "";
-            _MESSAGE_MODEL["quote"]["fileType"] = isFileUsingFileID ? (quotedMessage.type === CHAT_MESSAGE_TYPE_FILE ? "file" : (quotedMessage.type === CHAT_MESSAGE_TYPE_IMAGE ? "image" : video)) : "";
-            _MESSAGE_MODEL["quote"]["imageURL"] = quotedMessage.data.fileURL ? quotedMessage.data.fileURL : "";
+            _MESSAGE_MODEL["quote"]["fileType"] = isFileUsingFileID ? (quotedMessage.type === CHAT_MESSAGE_TYPE_FILE ? "file" : (quotedMessage.type === CHAT_MESSAGE_TYPE_IMAGE ? "image" : "video")) : "";
+            _MESSAGE_MODEL["quote"]["imageURL"] = quotedMessage.type === CHAT_MESSAGE_TYPE_IMAGE ? (quotedMessage.data.fileURL ? quotedMessage.data.fileURL : "") : "";
+			_MESSAGE_MODEL["quote"]["videoURL"] =  quotedMessage.type === CHAT_MESSAGE_TYPE_VIDEO ? (quotedMessage.data.fileURL ? quotedMessage.data.fileURL : "") : "";
             _MESSAGE_MODEL["quote"]["title"] = quoteTitle ? quoteTitle : _quoteTitle;
         }
         //quote
@@ -2194,7 +2195,7 @@ exports.tapCoreMessageManager  = {
             _MESSAGE_MODEL["replyTo"]["xcUserID"] = quotedMessage.user.xcUserID;
         }
         // reply to
-        
+
         return _MESSAGE_MODEL;
     },
 
@@ -2284,7 +2285,7 @@ exports.tapCoreMessageManager  = {
 
     sendCustomMessage : (body, data, messageType, room, callback, quotedMessage = false) => {
         if(this.taptalk.isAuthenticated()) {
-            let MESSAGE_MODEL =  quotedMessage ? 
+            let _MESSAGE_MODEL =  quotedMessage ? 
                 this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(body, room, messageType, data, quotedMessage)
                 :
                 this.tapCoreMessageManager.constructTapTalkMessageModel(body, room, messageType, data)
@@ -2292,16 +2293,16 @@ exports.tapCoreMessageManager  = {
 
             let emitData = {
                 eventName: SOCKET_NEW_MESSAGE,
-                data: MESSAGE_MODEL
+                data: _MESSAGE_MODEL
             };
                     
-            let _message = {...MESSAGE_MODEL};
+            let _message = JSON.parse(JSON.stringify(_MESSAGE_MODEL));
 
             _message.body = body;
             _message.data = data;
 
             if(quotedMessage) {
-                _message.quote.content = body;
+                _message.quote.content = quotedMessage.body;
             }
         
             // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
@@ -2314,26 +2315,26 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    sendProductMessageWithProductArray : (arrayOfProduct, room, callback) => {
+    sendProductMessageWithProductArray : (arrayOfProduct, room, callback, quotedMessage = false) => {
         if(this.taptalk.isAuthenticated()) {
-            this.tapCoreMessageManager.sendCustomMessage("Product List", {items: arrayOfProduct}, 2001, room, callback);
+            this.tapCoreMessageManager.sendCustomMessage("Product List", {items: arrayOfProduct}, 2001, room, callback, quotedMessage);
         }
     },
 
     sendTextMessageWithoutEmit : (messageBody, room, callback, quotedMessage = false) => {
         if(this.taptalk.isAuthenticated()) {
-            let MESSAGE_MODEL =  quotedMessage ? 
+            let _MESSAGE_MODEL =  quotedMessage ? 
                 this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "", quotedMessage)
                 :
                 this.tapCoreMessageManager.constructTapTalkMessageModel(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "")
             ;
 
-            let _message = {...MESSAGE_MODEL};
+            let _message = JSON.parse(JSON.stringify(_MESSAGE_MODEL));
 
             _message.body = messageBody;
 
             if(quotedMessage) {
-                _message.quote.content = messageBody;
+                _message.quote.content = quotedMessage.body;
             }
             
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
@@ -2544,21 +2545,21 @@ exports.tapCoreMessageManager  = {
                         caption: caption
                     };
 
-                    let MESSAGE_MODEL =  quotedMessage ? 
+                    let _MESSAGE_MODEL =  quotedMessage ? 
                         _this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValueImage, room, CHAT_MESSAGE_TYPE_IMAGE, data, quotedMessage, currentLocalID)
                         :
                         _this.tapCoreMessageManager.constructTapTalkMessageModel(bodyValueImage, room, CHAT_MESSAGE_TYPE_IMAGE, data, currentLocalID)
                     ;
                     
-                    let _message = {...MESSAGE_MODEL};
+                    let _message = JSON.parse(JSON.stringify(_MESSAGE_MODEL));
 
                     _message.body = bodyValueImage;
                     _message.data = data;
                     _message.bytesUpload = 0;
                     _message.percentageUpload = 0;
-
+                    
                     if(quotedMessage) {
-                        _message.quote.content = bodyValueImage;
+                        _message.quote.content = quotedMessage.body;
                     }
                     
                     _this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
@@ -2612,7 +2613,7 @@ exports.tapCoreMessageManager  = {
         this.tapCoreMessageManager.actionSendImageMessage(file, caption, room, callback, true, quotedMessage);
     },
 
-    sendImageMessageWithoutEmit : (file, caption, room, callback) => {
+    sendImageMessageWithoutEmit : (file, caption, room, callback, quotedMessage = false) => {
         this.tapCoreMessageManager.actionSendImageMessage(file, caption, room, callback, false, quotedMessage);
     },
 
@@ -2703,13 +2704,13 @@ exports.tapCoreMessageManager  = {
                     duration: value.duration
                 };
 
-                let MESSAGE_MODEL =  quotedMessage ? 
+                let _MESSAGE_MODEL =  quotedMessage ? 
                     _this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValueVideo, room, CHAT_MESSAGE_TYPE_VIDEO, data, quotedMessage, currentLocalID)
                     :
                     _this.tapCoreMessageManager.constructTapTalkMessageModel(bodyValueVideo, room, CHAT_MESSAGE_TYPE_VIDEO, data, currentLocalID)
                 ;
                 
-                let _message = {...MESSAGE_MODEL};
+                let _message = JSON.parse(JSON.stringify(_MESSAGE_MODEL));
     
                 _message.body = bodyValueVideo;
                 _message.data = data;
@@ -2717,7 +2718,7 @@ exports.tapCoreMessageManager  = {
                 _message.percentageUpload = 0;
 
                 if(quotedMessage) {
-                    _message.quote.content = bodyValueVideo;
+                    _message.quote.content = quotedMessage.body;
                 }
                 
                 _this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
@@ -2829,13 +2830,13 @@ exports.tapCoreMessageManager  = {
                 fileID: ""
             };
 
-            let MESSAGE_MODEL =  quotedMessage ? 
+            let _MESSAGE_MODEL =  quotedMessage ? 
                 this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValue, room, CHAT_MESSAGE_TYPE_FILE, data, currentLocalID, quotedMessage)
                 :
                 this.tapCoreMessageManager.constructTapTalkMessageModel(bodyValue, room, CHAT_MESSAGE_TYPE_FILE, data, currentLocalID)
             ;
             
-            let _message = {...MESSAGE_MODEL};
+            let _message = JSON.parse(JSON.stringify(_MESSAGE_MODEL));
 
             _message.body = bodyValue;
             _message.data = data;
