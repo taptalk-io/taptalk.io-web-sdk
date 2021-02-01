@@ -2810,7 +2810,6 @@ exports.tapCoreMessageManager  = {
     },
 
     sendFileMessageWithoutEmit : (file, room, callback, quotedMessage = false) => {
-        console.log(file)
         this.tapCoreMessageManager.actionSendFileMessage(file, room, callback, false, quotedMessage);
     },
 
