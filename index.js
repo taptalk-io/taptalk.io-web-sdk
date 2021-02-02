@@ -2152,36 +2152,41 @@ exports.tapCoreMessageManager  = {
         _MESSAGE_MODEL["isRead"] = false;
         _MESSAGE_MODEL["isDeleted"] = false;
         //message status
-
+        
         //quote
-        let isFileUsingFileID = !quotedMessage ? false : quotedMessage.type === CHAT_MESSAGE_TYPE_FILE || quotedMessage.type === CHAT_MESSAGE_TYPE_VIDEO || quotedMessage.type === CHAT_MESSAGE_TYPE_IMAGE;
-        let _quoteTitle = "";
-        let _quoteContent = "";
-
-        //title
-        if(quotedMessage.type === CHAT_MESSAGE_TYPE_FILE) {
-            _quoteTitle = quotedMessage.data.fileName.split(".")[0];
-        }else {
-            _quoteTitle = quotedMessage.user.fullname;
-        }
-        //title
-
-        //content
-        if(quotedMessage.type === CHAT_MESSAGE_TYPE_FILE) {
-            _quoteContent = bytesToSize(quotedMessage.data.size) + " " + quotedMessage.data.fileName.split(".")[quotedMessage.data.fileName.split(".").length - 1].toUpperCase();
-        }else {
-            _quoteContent = quotedMessage.body;
-        }
-        //content
-
         if(quotedMessage) {
-            _MESSAGE_MODEL["quote"]["content"] = quoteContent ? quoteContent : _quoteContent;
+            let isFileUsingFileID = !quotedMessage ? false : quotedMessage.type === CHAT_MESSAGE_TYPE_FILE || quotedMessage.type === CHAT_MESSAGE_TYPE_VIDEO || quotedMessage.type === CHAT_MESSAGE_TYPE_IMAGE;
+            let _quoteTitle = "";
+            let _quoteContent = "";
+
+            //title
+            if(quotedMessage.type === CHAT_MESSAGE_TYPE_FILE) {
+                _quoteTitle = quotedMessage.data.fileName.split(".")[0];
+            }else {
+                _quoteTitle = quotedMessage.user.fullname;
+            }
+            //title
+
+            //content
+            if(quotedMessage.type === CHAT_MESSAGE_TYPE_FILE) {
+                _quoteContent = bytesToSize(quotedMessage.data.size) + " " + quotedMessage.data.fileName.split(".")[quotedMessage.data.fileName.split(".").length - 1].toUpperCase();
+            }else {
+                _quoteContent = quotedMessage.body;
+            }
+            //content
+
+            _MESSAGE_MODEL["quote"]["content"] = _quoteContent;
             _MESSAGE_MODEL["quote"]["content"] = encryptKey(_MESSAGE_MODEL["quote"]["content"], _MESSAGE_MODEL["localID"]);
             _MESSAGE_MODEL["quote"]["fileID"] = isFileUsingFileID ? quotedMessage.data.fileID : "";
             _MESSAGE_MODEL["quote"]["fileType"] = isFileUsingFileID ? (quotedMessage.type === CHAT_MESSAGE_TYPE_FILE ? "file" : (quotedMessage.type === CHAT_MESSAGE_TYPE_IMAGE ? "image" : "video")) : "";
             _MESSAGE_MODEL["quote"]["imageURL"] = quotedMessage.type === CHAT_MESSAGE_TYPE_IMAGE ? (quotedMessage.data.fileURL ? quotedMessage.data.fileURL : "") : "";
-			_MESSAGE_MODEL["quote"]["videoURL"] =  quotedMessage.type === CHAT_MESSAGE_TYPE_VIDEO ? (quotedMessage.data.fileURL ? quotedMessage.data.fileURL : "") : "";
-            _MESSAGE_MODEL["quote"]["title"] = quoteTitle ? quoteTitle : _quoteTitle;
+            _MESSAGE_MODEL["quote"]["videoURL"] =  quotedMessage.type === CHAT_MESSAGE_TYPE_VIDEO ? (quotedMessage.data.fileURL ? quotedMessage.data.fileURL : "") : "";
+            _MESSAGE_MODEL["quote"]["title"] = _quoteTitle;
+        }else {
+            _MESSAGE_MODEL["quote"]["content"] = quoteContent;
+            _MESSAGE_MODEL["quote"]["content"] = encryptKey(_MESSAGE_MODEL["quote"]["content"], _MESSAGE_MODEL["localID"]);
+            _MESSAGE_MODEL["quote"]["imageURL"] = quoteImageUrl;
+            _MESSAGE_MODEL["quote"]["title"] = quoteTitle;
         }
         //quote
 
@@ -2287,7 +2292,7 @@ exports.tapCoreMessageManager  = {
         if(this.taptalk.isAuthenticated()) {
             let emitData = {
                 eventName: SOCKET_NEW_MESSAGE,
-                data: messageModel
+                data: JSON.parse(JSON.stringify(messageModel))
             };
                     
             // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
