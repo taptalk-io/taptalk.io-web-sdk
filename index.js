@@ -885,11 +885,28 @@ exports.taptalk = {
         )
     },
 
+    clearTaptalkChatData : () => {
+        localStorage.removeItem('TapTalk.UserData');        
+        tapTalkRooms = {}; //room list with array of messages
+        tapTalkRoomListHashmap = {}; //room list last message
+        tapRoomStatusListeners = [];
+        tapMessageListeners = [];
+        tapListener = [];
+        taptalkContact = {};
+        projectConfigs = null;
+        expiredKey = [];
+        refreshAccessTokenCallbackArray = [];
+        isConnectRunning = false;
+        isDoneFirstSetupRoomList = false;
+        isNeedToCallApiUpdateRoomList = true;
+        isFirstConnectedToWebSocket = false;
+    },
+
     logoutAndClearAllTapTalkData : (callback) => {
         let url = `${baseApiUrl}/v1/client/logout`;
         let _this = this;
 
-        if(this.taptalk.isAuthenticated() ) {
+        if(this.taptalk.isAuthenticated()) {
             authenticationHeader["Authorization"] = `Bearer ${getLocalStorageObject('TapTalk.UserData').accessToken}`;
 
             doXMLHTTPRequest('POST', authenticationHeader, url, "")
@@ -909,7 +926,8 @@ exports.taptalk = {
                     
                 });
             
-            localStorage.removeItem('TapTalk.UserData');
+            // localStorage.removeItem('TapTalk.UserData');
+            this.taptalk.clearTaptalkChatData();
             callback.onSuccess("Logged out successfully");
         }
     },
@@ -1221,6 +1239,18 @@ exports.tapCoreRoomListManager = {
         }else {
             callback.onSuccess(tapTalkRoomListHashmap);
         }
+    },
+    
+    updateUnreadBadgeCount: () => {
+		let unreadCount = 0;
+
+		if(taptalk.isAuthenticated()) {
+			Object.keys(tapTalkRoomListHashmap).map((value) => {
+				unreadCount = unreadCount + tapTalkRoomListHashmap[value].unreadCount;
+			})
+		}
+
+		return unreadCount;
 	},
     
     getRoomListAndRead: (callback) => {
