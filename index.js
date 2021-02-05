@@ -1242,8 +1242,8 @@ exports.tapCoreRoomListManager = {
     },
     
     updateUnreadBadgeCount: () => {
-		let unreadCount = 0;
-
+        let unreadCount = 0;
+        
 		if(this.taptalk.isAuthenticated()) {
 			Object.keys(tapTalkRoomListHashmap).map((value) => {
 				unreadCount = unreadCount + tapTalkRoomListHashmap[value].unreadCount;
