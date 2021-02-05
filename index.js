@@ -1,4 +1,4 @@
-/* 29-01-2021 18:00  v1.9.0*/
+/* 05-02-2021 10:00  v1.9.4*/
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -1242,9 +1242,9 @@ exports.tapCoreRoomListManager = {
     },
     
     updateUnreadBadgeCount: () => {
-		let unreadCount = 0;
-
-		if(taptalk.isAuthenticated()) {
+        let unreadCount = 0;
+        
+		if(this.taptalk.isAuthenticated()) {
 			Object.keys(tapTalkRoomListHashmap).map((value) => {
 				unreadCount = unreadCount + tapTalkRoomListHashmap[value].unreadCount;
 			})
