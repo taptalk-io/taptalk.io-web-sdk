@@ -1,4 +1,4 @@
-/* 05-02-2021 10:00  v1.9.4*/
+/* 08-02-2021 10:30  v1.9.5*/
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -20,7 +20,7 @@ var isNeedToCallApiUpdateRoomList = true;
 let isFirstConnectedToWebSocket = false;
 
 var db;
-window.indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
+// window.indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
 
 //initiate index db for local file(image, video, file)
 function addFileToDB(fileID, base64, fileType) {
