@@ -1,4 +1,4 @@
-/* 08-02-2021 10:30  v1.9.5*/
+/* 15-02-2021 12:00  v1.9.6*/
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -3096,6 +3096,14 @@ exports.tapCoreMessageManager  = {
 						console.error('there was an error!', err);
 					});
 			}
+        }
+    },
+
+    hideMessageInRoom: (roomID, localID) => {
+        if(this.taptalk.isAuthenticated()) {
+            tapTalkRooms[roomID].messages[localID].isHidden = true;
+
+            return tapTalkRooms[roomID].messages[localID];
         }
     }
 }
