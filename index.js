@@ -1231,14 +1231,11 @@ exports.tapCoreRoomListManager = {
     getUpdatedRoomList: (callback) => {
         if(navigator.onLine) {
             if(!isDoneFirstSetupRoomList) {
-                console.log("1")
                 this.tapCoreRoomListManager.getRoomListAndRead(callback)
             }else {
                 if(isDoneFirstSetupRoomList && !isNeedToCallApiUpdateRoomList) {
-                    console.log("2")
                     this.tapCoreRoomListManager.getRoomListAndRead(callback)
                 }else {
-                    console.log("3")
                     this.tapCoreRoomListManager.getRoomNewAndUpdated(callback)
                 }
             }
