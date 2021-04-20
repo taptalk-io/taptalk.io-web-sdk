@@ -1,4 +1,6 @@
-/* 15-02-2021 17:00  v1.9.7*/
+/* 15-02-2021 17:00  v1.9.8*/
+// change log
+// 1. method delete chat in room
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -444,6 +446,7 @@ var handleNewMessage = (message) => {
     let user = this.taptalk.getTaptalkActiveUser();
 
     let removeRoom = (roomID) => {
+        delete tapTalkRoomListHashmap[roomID];
 		delete tapTalkRooms[roomID];
 	}
     
@@ -1228,11 +1231,14 @@ exports.tapCoreRoomListManager = {
     getUpdatedRoomList: (callback) => {
         if(navigator.onLine) {
             if(!isDoneFirstSetupRoomList) {
+                console.log("1")
                 this.tapCoreRoomListManager.getRoomListAndRead(callback)
             }else {
                 if(isDoneFirstSetupRoomList && !isNeedToCallApiUpdateRoomList) {
+                    console.log("2")
                     this.tapCoreRoomListManager.getRoomListAndRead(callback)
                 }else {
+                    console.log("3")
                     this.tapCoreRoomListManager.getRoomNewAndUpdated(callback)
                 }
             }
@@ -3085,12 +3091,14 @@ exports.tapCoreMessageManager  = {
                             _this.taptalk.checkErrorResponse(response, null, () => {
                                 _this.tapCoreMessageManager.markMessageAsDeleted(roomID, messages, forEveryone)
                             });
-                        }else {
-							for(let i in messages) {
-								let findIndex = tapTalkRooms[roomID].messages.findIndex(value => value.messageID === messages[i]);
-								tapTalkRooms[roomID].messages[findIndex].isDeleted = true;
-							}
-						}
+                        }
+                        // else {
+							// for(let i in messages) {
+                            //     console.log(messages[i]);
+							// 	let findIndex = tapTalkRooms[roomID].messages.findIndex(value => value.messageID === messages[i]);
+							// 	tapTalkRooms[roomID].messages[findIndex].isDeleted = true;
+							// }
+						// }
 					})
 					.catch(function (err) {
 						console.error('there was an error!', err);
