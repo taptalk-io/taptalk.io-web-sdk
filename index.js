@@ -1,6 +1,7 @@
 /* 15-02-2021 17:00  v1.9.8*/
 // change log
 // 1. method delete chat in room
+// 2. deleteMessageByRoomId
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -1924,6 +1925,13 @@ exports.tapCoreChatRoomManager = {
                 });
         }
 	},
+
+    deleteMessageByRoomID : (roomID) => {
+        if(this.taptalk.isAuthenticated()) {
+            delete tapTalkRoomListHashmap[roomID];
+		    delete tapTalkRooms[roomID];
+        }
+    },
 
     // cancelMessageFileDownload(message, callback) {
 
