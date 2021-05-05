@@ -1292,7 +1292,7 @@ exports.tapCoreRoomListManager = {
                             
                             _this.tapCoreMessageManager.markMessageAsDelivered(messageIDs);
 
-                            callback.onSuccess(tapTalkRoomListHashmap);
+                            callback.onSuccess(tapTalkRoomListHashmap, tapTalkRooms);
 						}else {
 							_this.taptalk.checkErrorResponse(response, callback, () => {
                                 _this.tapCoreRoomListManager.getRoomListAndRead(callback)
@@ -1303,7 +1303,7 @@ exports.tapCoreRoomListManager = {
 						console.error('there was an error!', err);
 					});
 			}else {
-				callback.onSuccess(tapTalkRoomListHashmap);
+				callback.onSuccess(tapTalkRoomListHashmap, tapTalkRooms);
 			}
         }
     },
@@ -1340,7 +1340,7 @@ exports.tapCoreRoomListManager = {
 
 							_this.tapCoreMessageManager.markMessageAsDelivered(messageIDs);
 							
-							callback.onSuccess(tapTalkRoomListHashmap);
+							callback.onSuccess(tapTalkRoomListHashmap, tapTalkRooms);
 						}
 					}else {
 						_this.taptalk.checkErrorResponse(response, callback, () => {
