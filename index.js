@@ -3278,13 +3278,16 @@ exports.tapCoreContactManager  = {
     },
 
     getFilterUserContacts : (contactString, callback) => {
+        let _contactString = contactString.toLowerCase();
 		let contactSearchResult = [];
 		setTimeout(function() {
 			for(let i in taptalkContact) {
-				if(taptalkContact[i].user.fullname.includes(contactString) || taptalkContact[i].user.username.includes(contactString)) {
+				if(taptalkContact[i].user.fullname.toLowerCase().includes(_contactString) || taptalkContact[i].user.username.toLowerCase().includes(_contactString)) {
 					contactSearchResult.push(taptalkContact[i])
 				}
 			}
+
+            console.log("contactSearchResult", contactSearchResult)
             
             if(contactSearchResult.length > 0) {
 				callback.onContactFound(contactSearchResult);
