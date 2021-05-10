@@ -3286,8 +3286,6 @@ exports.tapCoreContactManager  = {
 					contactSearchResult.push(taptalkContact[i])
 				}
 			}
-
-            console.log("contactSearchResult", contactSearchResult)
             
             if(contactSearchResult.length > 0) {
 				callback.onContactFound(contactSearchResult);
