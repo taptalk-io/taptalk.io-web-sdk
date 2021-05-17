@@ -989,7 +989,6 @@ exports.taptalk = {
                 })
                 .catch(function (err) {
                     console.error('there was an error!', err);
-                    
                 });
         }
     },
@@ -1012,13 +1011,15 @@ exports.taptalk = {
                         userData.user = response.data.user;
                         localStorage.setItem('TapTalk.UserData', encryptKey(JSON.stringify(userData), KEY_PASSWORD_ENCRYPTOR));
 						
-						_this.taptalk.refreshActiveUser(function(response, error) {
-							if(response) {
-								callback("Upload success", null)
-							}else {
-								callback(null, "Failed refreshing active user")
-							}
-						})
+						// _this.taptalk.refreshActiveUser(function(response, error) {
+						// 	if(response) {
+						// 		callback("Upload success", null)
+						// 	}else {
+						// 		callback(null, "Failed refreshing active user")
+						// 	}
+						// })
+                        // _this.taptalk.refreshActiveUser(callback)
+                        callback.onSuccess('Successfully uploaded user photo');
                     }else {
                         _this.taptalk.checkErrorResponse(response, callback, () => {
                             _this.taptalk.uploadUserPhoto(file, callback)
@@ -1027,7 +1028,6 @@ exports.taptalk = {
                 })
                 .catch(function (err) {
                     console.error('there was an error!', err);
-                    
                 });
         }
     },
