@@ -1,9 +1,6 @@
-/* 15-02-2021 17:00  v1.9.8*/
+/* 10-11-2021 17:00  v1.10.3*/
 // change log
-// 1. method delete chat in room
-// 2. deleteMessageByRoomId
-// 3. getAllRooms
-// 4. forward message
+// 1. repair actionSendVideoMessage() method
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -2725,7 +2722,7 @@ exports.tapCoreMessageManager  = {
                 };
 
                 let _MESSAGE_MODEL = quotedMessage ? 
-                    _this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValueImage, room, CHAT_MESSAGE_TYPE_VIDEO, data, quotedMessage, currentLocalID)
+                    _this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValueVideo, room, CHAT_MESSAGE_TYPE_VIDEO, data, quotedMessage, currentLocalID)
                     :
                     forwardMessage ?
                         _this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, "", null, forwardMessage)
