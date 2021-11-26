@@ -2385,8 +2385,6 @@ exports.tapCoreMessageManager  = {
 
             _message.body = forwardMessage ? forwardMessage.body : messageBody;
 
-            console.log(forwardMessage)
-
             if(quotedMessage) {
                 _message.quote.content = quotedMessage.body;
             }
