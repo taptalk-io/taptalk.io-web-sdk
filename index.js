@@ -2365,16 +2365,9 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    checkAndSendForwardedMessage : (room, callback, quotedMessage = false, forwardMessage = false) => {
+    checkAndSendForwardedMessage : (room, callback, forwardMessage) => {
         if(this.taptalk.isAuthenticated()) {
-            let _MESSAGE_MODEL = quotedMessage ? 
-                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "", quotedMessage)
-                :
-                forwardMessage ?
-                    this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, "", null, forwardMessage)
-                    :
-                    this.tapCoreMessageManager.constructTapTalkMessageModel(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "")
-            ;
+            let _MESSAGE_MODEL = this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, "", null, forwardMessage);
 
             let emitData = {
                 eventName: SOCKET_NEW_MESSAGE,
@@ -2383,11 +2376,7 @@ exports.tapCoreMessageManager  = {
                     
             let _message = JSON.parse(JSON.stringify(_MESSAGE_MODEL));
 
-            _message.body = forwardMessage ? forwardMessage.body : messageBody;
-
-            if(quotedMessage) {
-                _message.quote.content = quotedMessage.body;
-            }
+            _message.body = forwardMessage.body;
             // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
 
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
