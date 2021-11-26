@@ -1,6 +1,6 @@
-/* 10-11-2021 17:00  v1.10.4*/
+/* 10-11-2021 17:00  v1.11.0*/
 // change log
-// 1. repair actionSendVideoMessage() method
+// 1. forward message without body
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -2362,6 +2362,41 @@ exports.tapCoreMessageManager  = {
     sendProductMessageWithProductArray : (arrayOfProduct, room, callback, quotedMessage = false) => {
         if(this.taptalk.isAuthenticated()) {
             this.tapCoreMessageManager.sendCustomMessage("Product List", {items: arrayOfProduct}, 2001, room, callback, quotedMessage);
+        }
+    },
+
+    checkAndSendForwardedMessage : (room, callback, quotedMessage = false, forwardMessage = false) => {
+        if(this.taptalk.isAuthenticated()) {
+            let _MESSAGE_MODEL = quotedMessage ? 
+                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "", quotedMessage)
+                :
+                forwardMessage ?
+                    this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, "", null, forwardMessage)
+                    :
+                    this.tapCoreMessageManager.constructTapTalkMessageModel(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "")
+            ;
+
+            let emitData = {
+                eventName: SOCKET_NEW_MESSAGE,
+                data: _MESSAGE_MODEL
+            };
+                    
+            let _message = JSON.parse(JSON.stringify(_MESSAGE_MODEL));
+
+            _message.body = forwardMessage ? forwardMessage.body : messageBody;
+
+            console.log(forwardMessage)
+
+            if(quotedMessage) {
+                _message.quote.content = quotedMessage.body;
+            }
+            // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
+
+            this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
+            
+            callback(_message);
+            
+            tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
         }
     },
 
