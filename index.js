@@ -1,6 +1,6 @@
-/* 10-11-2021 17:00  v1.11.0*/
+/* 29-11-2021 17:00  v1.11.4*/
 // change log
-// 1. forward message without body
+// 1. repair unread message action
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -530,9 +530,10 @@ var handleUpdateMessage = (message) => {
         tapTalkRooms[message.room.roomID].messages[message.localID] = message;
         
         if(message.isRead) {
-            for(var i in tapTalkRooms[message.room.roomID].messages) {
-                tapTalkRooms[message.room.roomID].messages[i].isRead = true;
-            }
+            // for(var i in tapTalkRooms[message.room.roomID].messages) {
+            //     tapTalkRooms[message.room.roomID].messages[i].isRead = true;
+            // }
+            tapTalkRooms[message.room.roomID].messages[message.localID] = true
         }
     
         module.exports.tapCoreRoomListManager.setRoomListLastMessage(message, 'update emit');
