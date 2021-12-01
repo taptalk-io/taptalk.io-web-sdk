@@ -1,6 +1,6 @@
-/* 29-11-2021 17:00  v1.11.4*/
+/* 01-12-2021 17:00  v1.11.5*/
 // change log
-// 1. repair unread message action
+// 1. ada object url into upload file message
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -2523,7 +2523,9 @@ exports.tapCoreMessageManager  = {
             doXMLHTTPRequestUpload('POST', authenticationHeader, url, uploadData, callback.onProgress)
                 .then(function (response) {
                     if(response.error.code === "") {
-                        callback.onSuccess(response.data);
+                        let _data = {...response.data};
+                        _data.url = _data.fileURL;
+                        callback.onSuccess(_data);
 
                         generateBase64(response.data.fileID);
                     }else {
