@@ -1,6 +1,6 @@
-/* 01-12-2021 17:00  v1.11.5*/
+/* 07-12-2021 17:00  v1.11.6*/
 // change log
-// 1. ada object url into upload file message
+// 1. repair method(get message after)
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -3053,11 +3053,11 @@ exports.tapCoreMessageManager  = {
 		let lastUpdateTimestamp = 0;
         let getMinCreatedTimestamp = 0;
         let objectKeyRoomListlength = 0;
-        
+
         if(tapTalkRooms[roomID] && Object.keys(tapTalkRooms[roomID].messages).length > 0) {
             objectKeyRoomListlength = Object.keys(tapTalkRooms[roomID].messages).length;
-            getMinCreatedTimestamp =  tapTalkRooms[roomID].messages[Object.keys(tapTalkRooms[roomID].messages)[0]].created;
-            lastUpdateTimestamp = tapTalkRooms[roomID].lastUpdated === 0 ? tapTalkRooms[roomID].messages[Object.keys(tapTalkRooms[roomID].messages)[objectKeyRoomListlength - 1]].created : tapTalkRooms[roomID].lastUpdated;
+            lastUpdateTimestamp =  tapTalkRooms[roomID].messages[Object.keys(tapTalkRooms[roomID].messages)[0]].lastUpdated;
+            getMinCreatedTimestamp = tapTalkRooms[roomID].lastUpdated === 0 ? tapTalkRooms[roomID].messages[Object.keys(tapTalkRooms[roomID].messages)[objectKeyRoomListlength - 1]].created : tapTalkRooms[roomID].lastUpdated;
         }else {
             this.tapCoreRoomListManager.pushNewRoomToTaptalkRooms(roomID);
         }
