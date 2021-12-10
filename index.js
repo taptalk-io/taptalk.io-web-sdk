@@ -1,6 +1,6 @@
-/* 07-12-2021 17:00  v1.11.6*/
+/* 10-12-2021 17:00  v1.11.7*/
 // change log
-// 1. repair method(get message after)
+// 1. repair handleUpdateMessage
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -533,7 +533,7 @@ var handleUpdateMessage = (message) => {
             // for(var i in tapTalkRooms[message.room.roomID].messages) {
             //     tapTalkRooms[message.room.roomID].messages[i].isRead = true;
             // }
-            tapTalkRooms[message.room.roomID].messages[message.localID] = true
+            tapTalkRooms[message.room.roomID].messages[message.localID].isRead = true
         }
     
         module.exports.tapCoreRoomListManager.setRoomListLastMessage(message, 'update emit');
