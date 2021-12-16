@@ -1,6 +1,6 @@
-/* 10-12-2021 17:00  v1.11.7*/
+/* 16-12-2021 17:00  v1.20.0*/
 // change log
-// 1. repair handleUpdateMessage
+// 1. forward message for file, image, video
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -2388,17 +2388,21 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    sendTextMessageWithoutEmit : (messageBody, room, callback, quotedMessage = false) => {
+    sendTextMessageWithoutEmit : (messageBody, room, callback, quotedMessage = false, forwardMessage = false) => {
         if(this.taptalk.isAuthenticated()) {
             let _MESSAGE_MODEL = quotedMessage ? 
                 this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "", quotedMessage)
                 :
-                this.tapCoreMessageManager.constructTapTalkMessageModel(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "")
+                forwardMessage ?
+                    this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, forwardMessage.data !== "" ? forwardMessage.data : "", null, forwardMessage)
+                    :
+                    this.tapCoreMessageManager.constructTapTalkMessageModel(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "")
             ;
 
             let _message = JSON.parse(JSON.stringify(_MESSAGE_MODEL));
 
             _message.body = messageBody;
+            _message.data = forwardMessage ? (forwardMessage.data !== "" ? forwardMessage.data : "") : "";
 
             if(quotedMessage) {
                 _message.quote.content = quotedMessage.body;
@@ -2407,6 +2411,10 @@ exports.tapCoreMessageManager  = {
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
 
             callback(_message);
+
+            if(forwardMessage) {
+                this.tapCoreMessageManager.sendTextMessage(messageBody, room, callback)
+            }
         }
     },
 
@@ -2416,7 +2424,7 @@ exports.tapCoreMessageManager  = {
                 this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "", quotedMessage)
                 :
                 forwardMessage ?
-                    this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, "", null, forwardMessage)
+                    this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, forwardMessage.data !== "" ? forwardMessage.data : "", null, forwardMessage)
                     :
                     this.tapCoreMessageManager.constructTapTalkMessageModel(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "")
             ;
@@ -2429,6 +2437,7 @@ exports.tapCoreMessageManager  = {
             let _message = JSON.parse(JSON.stringify(_MESSAGE_MODEL));
 
             _message.body = forwardMessage ? forwardMessage.body : messageBody;
+            _message.data = forwardMessage ? (forwardMessage.data !== "" ? forwardMessage.data : "") : "";
 
             if(quotedMessage) {
                 _message.quote.content = quotedMessage.body;
@@ -2436,7 +2445,7 @@ exports.tapCoreMessageManager  = {
             // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
 
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
-            
+
             callback(_message);
             
             tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
@@ -2585,23 +2594,29 @@ exports.tapCoreMessageManager  = {
                         caption: caption,
                         room: room.roomID
                     };
+                    
+                    let data = "";
 
-                    let data = {
-                        fileName: file.name,
-                        mediaType: file.type,
-                        size: file.size,
-                        fileID: "",
-                        thumbnail: thumbnailImage.split(',')[1],
-                        width: imageWidth,
-                        height: imageHeight,
-                        caption: caption
-                    };
+                    if(forwardMessage && forwardMessage.data !== "") {
+                        data = forwardMessage.data;
+                    }else {
+                        data = {
+                            fileName: file.name,
+                            mediaType: file.type,
+                            size: file.size,
+                            fileID: "",
+                            thumbnail: thumbnailImage.split(',')[1],
+                            width: imageWidth,
+                            height: imageHeight,
+                            caption: caption
+                        };
+                    }
 
                     let _MESSAGE_MODEL = quotedMessage ? 
                         _this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValueImage, room, CHAT_MESSAGE_TYPE_IMAGE, data, quotedMessage, currentLocalID)
                         :
                         forwardMessage ?
-                            _this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, "", null, forwardMessage)
+                            _this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, forwardMessage.data !== "" ? forwardMessage.data : "", null, forwardMessage)
                             :
                             _this.tapCoreMessageManager.constructTapTalkMessageModel(bodyValueImage, room, CHAT_MESSAGE_TYPE_IMAGE, data, currentLocalID)
                     ;
@@ -2610,8 +2625,6 @@ exports.tapCoreMessageManager  = {
 
                     _message.body = forwardMessage ? forwardMessage.body : bodyValueImage;
                     _message.data = data;
-                    _message.bytesUpload = 0;
-                    _message.percentageUpload = 0;
                     
                     if(quotedMessage) {
                         _message.quote.content = quotedMessage.body;
@@ -2619,17 +2632,20 @@ exports.tapCoreMessageManager  = {
                     
                     _this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
 
-                    callback.onStart(_message);
-                    
                     if(forwardMessage) {
                         let emitData = {
                             eventName: SOCKET_NEW_MESSAGE,
-                            data: _message
+                            data: _MESSAGE_MODEL
                         };
-        
+                        
+                        callback.onStart(_message);
                         tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
-                        _this.tapCoreMessageManager.sendImageMessage(file, caption, room, callback);
+                        _this.tapCoreMessageManager.sendImageMessage(file, caption, room, callback, false, false);
                     }else {
+                        _message.bytesUpload = 0;
+                        _message.percentageUpload = 0;
+                        callback.onStart(_message);
+                    
                         tapUplQueue.addToQueue(_message.localID, uploadData, {
                             onProgress: (percentage, bytes) => {
                                 callback.onProgress(currentLocalID, percentage, bytes);
@@ -2687,8 +2703,8 @@ exports.tapCoreMessageManager  = {
         this.tapCoreMessageManager.actionSendImageMessage(file, caption, room, callback, true, quotedMessage, forwardMessage);
     },
 
-    sendImageMessageWithoutEmit : (file, caption, room, callback, quotedMessage = false) => {
-        this.tapCoreMessageManager.actionSendImageMessage(file, caption, room, callback, false, quotedMessage);
+    sendImageMessageWithoutEmit : (file, caption, room, callback, quotedMessage = false, forwardMessage = false) => {
+        this.tapCoreMessageManager.actionSendImageMessage(file, caption, room, callback, false, quotedMessage, forwardMessage);
     },
 
     actionSendVideoMessage : (file, caption, room, callback, isSendEmit, quotedMessage, forwardMessage) => {
@@ -2733,24 +2749,31 @@ exports.tapCoreMessageManager  = {
                     caption: caption,
                     room: room.roomID
                 };
-    
-                let data = {
-                    fileName: file.name,
-                    mediaType: file.type,
-                    size: file.size,
-                    fileID: "",
-                    thumbnail: videoThumbnail,
-                    width: value.width,
-                    height: value.height,
-                    caption: caption,
-                    duration: value.duration
-                };
+
+                let data = "";
+
+                if(forwardMessage && forwardMessage.data !== "") {
+                    data = forwardMessage.data;
+                }else {
+                    data = {
+                        fileName: file.name,
+                        mediaType: file.type,
+                        size: file.size,
+                        fileID: "",
+                        thumbnail: videoThumbnail,
+                        width: value.width,
+                        height: value.height,
+                        caption: caption,
+                        duration: value.duration
+                    };
+                }
+
 
                 let _MESSAGE_MODEL = quotedMessage ? 
                     _this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValueVideo, room, CHAT_MESSAGE_TYPE_VIDEO, data, quotedMessage, currentLocalID)
                     :
                     forwardMessage ?
-                        _this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, "", null, forwardMessage)
+                        _this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, forwardMessage.data !== "" ? forwardMessage.data : "", null, forwardMessage)
                         :
                         _this.tapCoreMessageManager.constructTapTalkMessageModel(bodyValueVideo, room, CHAT_MESSAGE_TYPE_VIDEO, data, currentLocalID)
                 ;
@@ -2759,26 +2782,28 @@ exports.tapCoreMessageManager  = {
     
                 _message.body = forwardMessage ? forwardMessage.body : bodyValueVideo;
                 _message.data = data;
-                _message.bytesUpload = 0;
-                _message.percentageUpload = 0;
-
+                
                 if(quotedMessage) {
                     _message.quote.content = quotedMessage.body;
                 }
                 
                 _this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
                 
-                callback.onStart(_message);
 
                 if(forwardMessage) {
                     let emitData = {
                         eventName: SOCKET_NEW_MESSAGE,
-                        data: _message
+                        data: _MESSAGE_MODEL
                     };
-    
+                    
+                    callback.onStart(_message);
                     tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
-                    _this.tapCoreMessageManager.sendVideoMessage(file, caption, room, callback);
+                    _this.tapCoreMessageManager.sendVideoMessage(file, caption, room, callback, false, false);
                 }else {
+                    _message.bytesUpload = 0;
+                    _message.percentageUpload = 0;
+                    callback.onStart(_message);
+                    
                     tapUplQueue.addToQueue(_message.localID, uploadData, {
                         onProgress: (percentage, bytes) => {
                             callback.onProgress(currentLocalID, percentage, bytes);
@@ -2837,8 +2862,8 @@ exports.tapCoreMessageManager  = {
         this.tapCoreMessageManager.actionSendVideoMessage(file, caption, room, callback, true, quotedMessage, forwardMessage);
     },
 
-    sendVideoMessageWithoutEmit : (file, caption, room, callback, quotedMessage = false) => {
-        this.tapCoreMessageManager.actionSendVideoMessage(file, caption, room, callback, false, quotedMessage);
+    sendVideoMessageWithoutEmit : (file, caption, room, callback, quotedMessage = false, forwardMessage = false) => {
+        this.tapCoreMessageManager.actionSendVideoMessage(file, caption, room, callback, false, quotedMessage, forwardMessage);
     },
 
     actionSendFileMessage : (file, room, callback, isSendEmit, quotedMessage, forwardMessage) => {
@@ -2853,19 +2878,25 @@ exports.tapCoreMessageManager  = {
                 caption: "",
                 room: room.roomID
             };
+            
+            let data = "";
 
-            let data = {
-                fileName: file.name,
-                mediaType: file.type,
-                size: file.size,
-                fileID: ""
-            };
-
+            if(forwardMessage && forwardMessage.data !== "") {
+                data = forwardMessage.data;
+            }else {
+                data = {
+                    fileName: file.name,
+                    mediaType: file.type,
+                    size: file.size,
+                    fileID: ""
+                };
+            }
+            
             let _MESSAGE_MODEL = quotedMessage ? 
                 this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValue, room, CHAT_MESSAGE_TYPE_FILE, data, quotedMessage, currentLocalID)
                 :
                 forwardMessage ?
-                    this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, "", null, forwardMessage)
+                    this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, forwardMessage.data !== "" ? forwardMessage.data : "", null, forwardMessage)
                     :
                     this.tapCoreMessageManager.constructTapTalkMessageModel(bodyValue, room, CHAT_MESSAGE_TYPE_FILE, data, currentLocalID)
             ;
@@ -2874,25 +2905,26 @@ exports.tapCoreMessageManager  = {
 
             _message.body = forwardMessage ? forwardMessage.body : bodyValue;
             _message.data = data;
-            _message.bytesUpload = 0;
-            _message.percentageUpload = 0;
 
             if(quotedMessage) {
                 _message.quote.content = quotedMessage.body;
             }
             
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
-            callback.onStart(_message);
-
+            
             if(forwardMessage) {
                 let emitData = {
                     eventName: SOCKET_NEW_MESSAGE,
-                    data: _message
+                    data: _MESSAGE_MODEL
                 };
-
+                
+                callback.onStart(_message);
                 tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
-                this.tapCoreMessageManager.sendFileMessage(file, room, callback);
+                this.tapCoreMessageManager.sendFileMessage(file, room, callback, false, false);
             }else {
+                _message.bytesUpload = 0;
+                _message.percentageUpload = 0;
+                callback.onStart(_message);
                 tapUplQueue.addToQueue(_message.localID, uploadData, {
                     onProgress: (percentage, bytes) => {
                         callback.onProgress(currentLocalID, percentage, bytes);
@@ -2947,11 +2979,10 @@ exports.tapCoreMessageManager  = {
         this.tapCoreMessageManager.actionSendFileMessage(file, room, callback, true, quotedMessage, forwardMessage);
     },
 
-    sendFileMessageWithoutEmit : (file, room, callback, quotedMessage = false) => {
-        this.tapCoreMessageManager.actionSendFileMessage(file, room, callback, false, quotedMessage);
+    sendFileMessageWithoutEmit : (file, room, callback, quotedMessage = false, forwardMessage = false) => {
+        this.tapCoreMessageManager.actionSendFileMessage(file, room, callback, false, quotedMessage, forwardMessage);
     },
 
-    
     messagesObjectToArray : (messages) => {
 		var newObj = [];
 
