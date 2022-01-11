@@ -1,6 +1,6 @@
-/* 16-12-2021 17:00  v1.20.0*/
+/* 11-01-2022 17:00  v1.20.1*/
 // change log
-// 1. forward message for file, image, video
+// 1. new method hasMore
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -1956,6 +1956,14 @@ exports.tapCoreChatRoomManager = {
     getCurrentChatInRoom : (roomID) => {
 		if(tapTalkRooms[roomID]) {
 			return tapTalkRooms[roomID].messages;
+		}else {
+			return null;
+		}
+    },
+
+    getCurrentHasMoreChatInRoom : (roomID) => {
+        if(tapTalkRooms[roomID]) {
+			return tapTalkRooms[roomID].hasMore;
 		}else {
 			return null;
 		}
