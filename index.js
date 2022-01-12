@@ -2592,18 +2592,18 @@ exports.tapCoreMessageManager  = {
 
             let _this = this;
 
-            compressImageFile(file, 20, 20).then(function(resultThumbnail) {
+            compressImageFile(new File ([file], file.name), 20, 20).then(function(resultThumbnail) {
 				let thumbnailImage = resultThumbnail.src;
 				
-				compressImageFile(file, imageWidth, imageHeight).then(function(resultOriginal) {
+				compressImageFile(new File ([file], file.name), imageWidth, imageHeight).then(function(resultOriginal) {
                     let currentLocalID = guid();
-
+                    
                     let uploadData = {
-                        file: resultOriginal.file,
+                        file: {...resultOriginal}.file,
                         caption: caption,
                         room: room.roomID
                     };
-                    
+
                     let data = "";
 
                     if(forwardMessage && forwardMessage.data !== "") {
@@ -2654,8 +2654,7 @@ exports.tapCoreMessageManager  = {
                         _message.bytesUpload = 0;
                         _message.percentageUpload = 0;
                         callback.onStart(_message);
-                    
-                        tapUplQueue.addToQueue(_message.localID, uploadData, {
+                        tapUplQueue.addToQueue(_message.localID, {...uploadData}, {
                             onProgress: (percentage, bytes) => {
                                 callback.onProgress(currentLocalID, percentage, bytes);
                             },
@@ -3285,7 +3284,7 @@ class TapUploadQueue {
             return item;
         } 
         this.queue.push(generateNewUploadObject());
-        
+
         if (!this.isRunning) {
             this.isRunning = true;
             this.processNext();
