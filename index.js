@@ -3090,13 +3090,13 @@ exports.tapCoreMessageManager  = {
         let url = `${baseApiUrl}/v1/chat/message/list_by_room/after`;
 		let _this = this;
 		let lastUpdateTimestamp = 0;
-        let getMinCreatedTimestamp = 0;
-        let objectKeyRoomListlength = 0;
+        let getMinCreatedTimestamp = 0
+        // let objectKeyRoomListlength = 0;
 
         if(tapTalkRooms[roomID] && Object.keys(tapTalkRooms[roomID].messages).length > 0) {
-            objectKeyRoomListlength = Object.keys(tapTalkRooms[roomID].messages).length;
-            lastUpdateTimestamp =  tapTalkRooms[roomID].messages[Object.keys(tapTalkRooms[roomID].messages)[0]].lastUpdated;
-            getMinCreatedTimestamp = tapTalkRooms[roomID].lastUpdated === 0 ? tapTalkRooms[roomID].messages[Object.keys(tapTalkRooms[roomID].messages)[objectKeyRoomListlength - 1]].created : tapTalkRooms[roomID].lastUpdated;
+            // objectKeyRoomListlength = Object.keys(tapTalkRooms[roomID].messages).length;
+            lastUpdateTimestamp =  tapTalkRooms[roomID].lastUpdated;
+            getMinCreatedTimestamp = tapTalkRooms[roomID].lastUpdated === 0 ? tapTalkRooms[roomID].messages[Object.keys(tapTalkRooms[roomID].messages)[0]].created : tapTalkRooms[roomID].lastUpdated;
         }else {
             this.tapCoreRoomListManager.pushNewRoomToTaptalkRooms(roomID);
         }
@@ -3105,8 +3105,8 @@ exports.tapCoreMessageManager  = {
             roomID: roomID,
             minCreated: getMinCreatedTimestamp,
             lastUpdated: lastUpdateTimestamp
-		};
-		
+        };
+        
 		let apiAfterRequest = () => {
 			doXMLHTTPRequest('POST', authenticationHeader, url, data)
 					.then(function (response) {
