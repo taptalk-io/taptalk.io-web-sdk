@@ -1,6 +1,6 @@
-/* 11-01-2022 17:00  v1.20.1*/
+/* 18-02-2022 18:00  v1.20.6*/
 // change log
-// 1. new method hasMore
+// 1. repair compress image
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -2592,14 +2592,14 @@ exports.tapCoreMessageManager  = {
 
             let _this = this;
 
-            compressImageFile(new File ([file], file.name), 20, 20).then(function(resultThumbnail) {
+            compressImageFile(new File ([file], file.name, {type: file.type}), 20, 20).then(function(resultThumbnail) {
 				let thumbnailImage = resultThumbnail.src;
 				
-				compressImageFile(new File ([file], file.name), imageWidth, imageHeight).then(function(resultOriginal) {
+				compressImageFile(new File ([file], file.name,  {type: file.type}), imageWidth, imageHeight).then(function(res) {
                     let currentLocalID = guid();
-                    
+                  
                     let uploadData = {
-                        file: {...resultOriginal}.file,
+                        file: {...res}.file,
                         caption: caption,
                         room: room.roomID
                     };
@@ -2654,6 +2654,7 @@ exports.tapCoreMessageManager  = {
                         _message.bytesUpload = 0;
                         _message.percentageUpload = 0;
                         callback.onStart(_message);
+                        
                         tapUplQueue.addToQueue(_message.localID, {...uploadData}, {
                             onProgress: (percentage, bytes) => {
                                 callback.onProgress(currentLocalID, percentage, bytes);
