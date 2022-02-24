@@ -1029,6 +1029,28 @@ exports.taptalk = {
                 });
         }
     },
+
+    updateBio : (bio, callback) => {
+        let url = `${baseApiUrl}/v1/client/user/update_bio`;
+        let _this = this;
+
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, {bio: bio})
+                .then(function (response) {
+                    if(response.error.code === "") {
+                        callback.onSuccess(response.data.message);
+                    }else {
+                        callback.onError(response.error.code, response.error.message);
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
     
     getRandomColor: (name) => {
 		if (null == name || name.length == 0) {
