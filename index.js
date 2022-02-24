@@ -1043,7 +1043,9 @@ exports.taptalk = {
                     if(response.error.code === "") {
                         callback.onSuccess(response.data.message);
                     }else {
-                        callback.onError(response.error.code, response.error.message);
+                        _this.taptalk.checkErrorResponse(response, callback, () => {
+                            _this.taptalk.updateBio(bio, callback)
+                        });
                     }
                 })
                 .catch(function (err) {
