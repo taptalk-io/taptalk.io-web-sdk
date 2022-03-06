@@ -1,6 +1,8 @@
-/* 18-02-2022 18:00  v1.20.6*/
+/* 06-03-2022 20:15  v1.21.0*/
 // change log
-// 1. repair compress image
+// 1. taptalk.getListUserPhoto 
+// 2. taptalk.setMainUserPhoto
+// 3. taptalk.updateBio
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -1021,6 +1023,102 @@ exports.taptalk = {
                     }else {
                         _this.taptalk.checkErrorResponse(response, callback, () => {
                             _this.taptalk.uploadUserPhoto(file, callback)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    getListUserPhoto : (userID, callback) => {
+        let url = `${baseApiUrl}/v1/client/user/photo/get_list`;
+        let _this = this;
+
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, {userID: userID})
+                .then(function (response) {
+                    if(response.error.code === "") {
+                        callback.onSuccess(response.data);
+                    }else {
+                        _this.taptalk.checkErrorResponse(response, callback, () => {
+                            _this.taptalk.getListUserPhoto(callback)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    setMainUserPhoto : (imageID, callback) => {
+        let url = `${baseApiUrl}/v1/client/user/photo/set_main`;
+        let _this = this;
+
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, {id: imageID})
+                .then(function (response) {
+                    if(response.error.code === "") {
+                        callback.onSuccess('Successfully set as main photo');
+                    }else {
+                        _this.taptalk.checkErrorResponse(response, callback, () => {
+                            _this.taptalk.setMainUserPhoto(imageID, callback)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    deleteUserPhoto : (imageID, imageCreatedTime, callback) => {
+        let url = `${baseApiUrl}/v1/client/user/photo/delete`;
+        let _this = this;
+
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, {id: imageID, createdTime: imageCreatedTime})
+                .then(function (response) {
+                    if(response.error.code === "") {
+                        callback.onSuccess('Successfully delete photo');
+                    }else {
+                        _this.taptalk.checkErrorResponse(response, callback, () => {
+                            _this.taptalk.deleteUserPhoto(imageID, imageCreatedTime, callback)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    updateBio : (bio, callback) => {
+        let url = `${baseApiUrl}/v1/client/user/update_bio`;
+        let _this = this;
+
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, {bio: bio})
+                .then(function (response) {
+                    if(response.error.code === "") {
+                        callback.onSuccess('Successfully update bio');
+                    }else {
+                        _this.taptalk.checkErrorResponse(response, callback, () => {
+                            _this.taptalk.updateBio(bio, callback)
                         });
                     }
                 })
