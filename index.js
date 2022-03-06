@@ -1113,7 +1113,7 @@ exports.taptalk = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {bio: bio})
                 .then(function (response) {
                     if(response.error.code === "") {
-                        callback.onSuccess(response.data.message);
+                        callback.onSuccess('Successfully update bio');
                     }else {
                         _this.taptalk.checkErrorResponse(response, callback, () => {
                             _this.taptalk.updateBio(bio, callback)
