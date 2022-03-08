@@ -1067,6 +1067,8 @@ exports.taptalk = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {id: imageID})
                 .then(function (response) {
                     if(response.error.code === "") {
+                        userData.user = response.data.user;
+                        localStorage.setItem('TapTalk.UserData', encryptKey(JSON.stringify(userData), KEY_PASSWORD_ENCRYPTOR));
                         callback.onSuccess('Successfully set as main photo');
                     }else {
                         _this.taptalk.checkErrorResponse(response, callback, () => {
@@ -1091,6 +1093,8 @@ exports.taptalk = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {id: imageID, createdTime: imageCreatedTime})
                 .then(function (response) {
                     if(response.error.code === "") {
+                        userData.user = response.data.user;
+                        localStorage.setItem('TapTalk.UserData', encryptKey(JSON.stringify(userData), KEY_PASSWORD_ENCRYPTOR));
                         callback.onSuccess('Successfully delete photo');
                     }else {
                         _this.taptalk.checkErrorResponse(response, callback, () => {
