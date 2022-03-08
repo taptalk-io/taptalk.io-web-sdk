@@ -1,8 +1,9 @@
-/* 06-03-2022 20:15  v1.21.0*/
+/* 06-03-2022 20:15  v1.21.0-beta.2*/
 // change log
 // 1. taptalk.getListUserPhoto 
 // 2. taptalk.setMainUserPhoto
 // 3. taptalk.updateBio
+// 4. bug fix
 
 var define, CryptoJS;
 var crypto = require('crypto');
