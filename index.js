@@ -3361,6 +3361,101 @@ exports.tapCoreMessageManager  = {
                 }
             }
         }
+    },
+
+    searchLocalRoomMessageWithKeyword: (keyword, roomID, callback) => {
+        if(window.Worker) {
+            var searchLocalRoomMessageWithKeywordWorker = new WebWorker(() => self.addEventListener('message', function(e) {
+                let {rooms, roomID, keyword, isClose} = e.data;
+                let _resultMessages = [];
+
+                if(!isClose) {
+                    Object.keys(rooms[roomID].messages).map(valMes => {
+                        if(rooms[roomID].messages[valMes].body !== null && rooms[roomID].messages[valMes].body.toLowerCase().includes(keyword)) {
+                            _resultMessages.push(rooms[roomID].messages[valMes])
+                        }
+        
+                        return null;
+                    })
+            
+                    self.postMessage({
+                        result: {
+                            messages: _resultMessages
+                        }
+                    })
+                }else {
+                    self.close();
+                }
+            }));
+    
+            searchLocalRoomMessageWithKeywordWorker.postMessage({
+                rooms: tapTalkRooms,
+                roomID: roomID,
+                keyword: keyword
+            });
+
+            searchLocalRoomMessageWithKeywordWorker.addEventListener('message', (e) => {
+                let { result } = e.data;
+                
+                callback.onSuccess({
+                    keyword: keyword,
+                    roomID: roomID,
+                    messages: result.messages
+                })
+
+                searchLocalRoomMessageWithKeywordWorker.postMessage({isClose: true});
+            });
+        }else {
+            callback.onError("Worder is not supported");
+        }
+    },
+
+    searchLocalMessageWithKeyword: (keyword, callback) => {
+        if(window.Worker) {
+            var searchLocalMessageWithKeywordWorker = new WebWorker(() => self.addEventListener('message', function(e) {
+                let {rooms, keyword, isClose} = e.data;
+                let _resultMessages = [];
+
+                if(!isClose) {
+                    Object.keys(rooms).map(val => {
+                        Object.keys(rooms[val].messages).map(valMes => {
+                            if(rooms[val].messages[valMes].body !== null && rooms[val].messages[valMes].body.toLowerCase().includes(keyword)) {
+                                _resultMessages.push(rooms[val].messages[valMes])
+                            }
+            
+                            return null;
+                        })
+                    
+                        return null;
+                    })
+
+                    self.postMessage({
+                        result: {
+                            messages: _resultMessages
+                        }
+                    })
+                }else {
+                    self.close();
+                }
+            }));
+    
+            searchLocalMessageWithKeywordWorker.postMessage({
+                rooms: tapTalkRooms,
+                keyword: keyword
+            });
+
+            searchLocalMessageWithKeywordWorker.addEventListener('message', (e) => {
+                let { result } = e.data;
+                
+                callback.onSuccess({
+                    messages: result.messages
+                })
+
+                searchLocalMessageWithKeywordWorker.postMessage({isClose: true});
+            });
+        }else {
+            callback.onError("Worder is not supported");
+        }
     }
 }
 
