@@ -1,4 +1,4 @@
-/* 06-03-2022 20:15  v1.21.0-beta.2*/
+/* 10-03-2022 20:15  v1.21.1*/
 // change log
 // 1. taptalk.getListUserPhoto 
 // 2. taptalk.setMainUserPhoto
