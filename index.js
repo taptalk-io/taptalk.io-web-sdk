@@ -166,6 +166,14 @@ function getDeviceID() {
 	return generateDeviceID;
 }
 
+class WebWorker {
+    constructor(worker) {
+      const code = worker.toString();
+      const blob = new Blob(["(" + code + ")()"]);
+      return new Worker(URL.createObjectURL(blob));
+    }
+}
+
 // var reader  = new FileReader();
 
 const SOCKET_START_TYPING = "chat/startTyping";
@@ -3368,26 +3376,36 @@ exports.tapCoreMessageManager  = {
             var searchLocalRoomMessageWithKeywordWorker = new WebWorker(() => self.addEventListener('message', function(e) {
                 let {rooms, roomID, keyword, isClose} = e.data;
                 let _resultMessages = [];
-
+                
                 if(!isClose) {
-                    Object.keys(rooms[roomID].messages).map(valMes => {
-                        if(rooms[roomID].messages[valMes].body !== null && rooms[roomID].messages[valMes].body.toLowerCase().includes(keyword)) {
-                            _resultMessages.push(rooms[roomID].messages[valMes])
-                        }
-        
-                        return null;
-                    })
+                    if(!rooms[roomID]) {
+                        self.postMessage({
+                            result: {
+                                messages: [],
+                                error: "Room not found"
+                            }
+                        })
+                    } else {
+                        Object.keys(rooms[roomID].messages).map(valMes => {
+                            if(rooms[roomID].messages[valMes].body !== null && rooms[roomID].messages[valMes].body.toLowerCase().includes(keyword)) {
+                                _resultMessages.push(rooms[roomID].messages[valMes])
+                            }
             
-                    self.postMessage({
-                        result: {
-                            messages: _resultMessages
-                        }
-                    })
+                            return null;
+                        })
+                
+                        self.postMessage({
+                            result: {
+                                messages: _resultMessages,
+                                error: ""
+                            }
+                        })
+                    }
                 }else {
                     self.close();
                 }
             }));
-    
+
             searchLocalRoomMessageWithKeywordWorker.postMessage({
                 rooms: tapTalkRooms,
                 roomID: roomID,
@@ -3397,11 +3415,15 @@ exports.tapCoreMessageManager  = {
             searchLocalRoomMessageWithKeywordWorker.addEventListener('message', (e) => {
                 let { result } = e.data;
                 
-                callback.onSuccess({
-                    keyword: keyword,
-                    roomID: roomID,
-                    messages: result.messages
-                })
+                if(result.error === "") {
+                    callback.onSuccess({
+                        keyword: keyword,
+                        roomID: roomID,
+                        messages: result.messages
+                    })
+                }else {
+                    callback.onError(result.error);
+                }
 
                 searchLocalRoomMessageWithKeywordWorker.postMessage({isClose: true});
             });
