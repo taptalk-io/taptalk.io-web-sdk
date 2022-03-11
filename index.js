@@ -1,9 +1,7 @@
-/* 10-03-2022 20:15  v1.21.1*/
-// change log
-// 1. taptalk.getListUserPhoto 
-// 2. taptalk.setMainUserPhoto
-// 3. taptalk.updateBio
-// 4. bug fix
+/* 10-03-2022 20:15  v1.22.0*/
+// changes:
+// 1. searchLocalRoomMessageWithKeyword
+// 2. searchLocalMessageWithKeyword
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -3299,6 +3297,65 @@ exports.tapCoreMessageManager  = {
         }
     },
 
+    markAllMessagesInRoomAsRead : (roomID) => {
+        if(window.Worker) {
+            var markAllMessagesInRoomAsReadWorker = new WebWorker(() => self.addEventListener('message', function(e) {
+                let {rooms, roomID, isClose} = e.data;
+                let _resultMessages = [];
+                
+                if(!isClose) {
+                    if(!rooms[roomID]) {
+                        self.postMessage({
+                            result: {
+                                error: "Room not found"
+                            }
+                        })
+                    } else {
+                        Object.keys(rooms[roomID].messages).map(valMes => {
+                            if(!rooms[roomID].messages[valMes].isRead) {
+                                _resultMessages.push(rooms[roomID].messages[valMes].messageID)
+                            }
+            
+                            return null;
+                        })
+                
+                        self.postMessage({
+                            result: {
+                                messages: _resultMessages,
+                                error: ""
+                            }
+                        })
+                    }
+                }else {
+                    self.close();
+                }
+            }));
+
+            markAllMessagesInRoomAsReadWorker.postMessage({
+                rooms: tapTalkRooms,
+                roomID: roomID
+            });
+
+            markAllMessagesInRoomAsReadWorker.addEventListener('message', (e) => {
+                let { result } = e.data;
+
+                if(result.messages.length > 0) {
+                    this.tapCoreMessageManager.markMessageAsRead(result.messages);
+                }
+                
+                if(result.error !== "") {
+                    console.log("Room not found")
+                }
+
+
+                markAllMessagesInRoomAsReadWorker.postMessage({isClose: true});
+            });
+        }else {
+            console.log("Worker is not supported");
+        }
+
+    },
+
     markMessageAsDelivered : (message) => {
         let url = `${baseApiUrl}/v1/chat/message/feedback/delivered`;
         let _this = this;
@@ -3428,7 +3485,7 @@ exports.tapCoreMessageManager  = {
                 searchLocalRoomMessageWithKeywordWorker.postMessage({isClose: true});
             });
         }else {
-            callback.onError("Worder is not supported");
+            callback.onError("Worker is not supported");
         }
     },
 
@@ -3476,7 +3533,7 @@ exports.tapCoreMessageManager  = {
                 searchLocalMessageWithKeywordWorker.postMessage({isClose: true});
             });
         }else {
-            callback.onError("Worder is not supported");
+            callback.onError("Worker is not supported");
         }
     }
 }
