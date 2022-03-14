@@ -1,7 +1,8 @@
-/* 10-03-2022 20:15  v1.22.0*/
+/* 14-03-2022 15:15  v1.22.0*/
 // changes:
 // 1. searchLocalRoomMessageWithKeyword
 // 2. searchLocalMessageWithKeyword
+// 3. markAllMessagesInRoomAsRead
 
 var define, CryptoJS;
 var crypto = require('crypto');
