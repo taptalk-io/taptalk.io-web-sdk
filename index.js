@@ -1,9 +1,8 @@
-/* 10-03-2022 20:15  v1.21.1*/
-// change log
-// 1. taptalk.getListUserPhoto 
-// 2. taptalk.setMainUserPhoto
-// 3. taptalk.updateBio
-// 4. bug fix
+/* 14-03-2022 15:15  v1.22.0*/
+// changes:
+// 1. searchLocalRoomMessageWithKeyword
+// 2. searchLocalMessageWithKeyword
+// 3. markAllMessagesInRoomAsRead
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -164,6 +163,14 @@ function getDeviceID() {
 	localStorage.setItem('tapTalk.DeviceID', generateDeviceID);
 
 	return generateDeviceID;
+}
+
+class WebWorker {
+    constructor(worker) {
+      const code = worker.toString();
+      const blob = new Blob(["(" + code + ")()"]);
+      return new Worker(URL.createObjectURL(blob));
+    }
 }
 
 // var reader  = new FileReader();
@@ -3291,6 +3298,65 @@ exports.tapCoreMessageManager  = {
         }
     },
 
+    markAllMessagesInRoomAsRead : (roomID) => {
+        if(window.Worker) {
+            var markAllMessagesInRoomAsReadWorker = new WebWorker(() => self.addEventListener('message', function(e) {
+                let {rooms, roomID, isClose} = e.data;
+                let _resultMessages = [];
+                
+                if(!isClose) {
+                    if(!rooms[roomID]) {
+                        self.postMessage({
+                            result: {
+                                error: "Room not found"
+                            }
+                        })
+                    } else {
+                        Object.keys(rooms[roomID].messages).map(valMes => {
+                            if(!rooms[roomID].messages[valMes].isRead) {
+                                _resultMessages.push(rooms[roomID].messages[valMes].messageID)
+                            }
+            
+                            return null;
+                        })
+                
+                        self.postMessage({
+                            result: {
+                                messages: _resultMessages,
+                                error: ""
+                            }
+                        })
+                    }
+                }else {
+                    self.close();
+                }
+            }));
+
+            markAllMessagesInRoomAsReadWorker.postMessage({
+                rooms: tapTalkRooms,
+                roomID: roomID
+            });
+
+            markAllMessagesInRoomAsReadWorker.addEventListener('message', (e) => {
+                let { result } = e.data;
+
+                if(result.messages.length > 0) {
+                    this.tapCoreMessageManager.markMessageAsRead(result.messages);
+                }
+                
+                if(result.error !== "") {
+                    console.log("Room not found")
+                }
+
+
+                markAllMessagesInRoomAsReadWorker.postMessage({isClose: true});
+            });
+        }else {
+            console.log("Worker is not supported");
+        }
+
+    },
+
     markMessageAsDelivered : (message) => {
         let url = `${baseApiUrl}/v1/chat/message/feedback/delivered`;
         let _this = this;
@@ -3360,6 +3426,115 @@ exports.tapCoreMessageManager  = {
                     }
                 }
             }
+        }
+    },
+
+    searchLocalRoomMessageWithKeyword: (keyword, roomID, callback) => {
+        if(window.Worker) {
+            var searchLocalRoomMessageWithKeywordWorker = new WebWorker(() => self.addEventListener('message', function(e) {
+                let {rooms, roomID, keyword, isClose} = e.data;
+                let _resultMessages = [];
+                
+                if(!isClose) {
+                    if(!rooms[roomID]) {
+                        self.postMessage({
+                            result: {
+                                messages: [],
+                                error: "Room not found"
+                            }
+                        })
+                    } else {
+                        Object.keys(rooms[roomID].messages).map(valMes => {
+                            if(rooms[roomID].messages[valMes].body !== null && rooms[roomID].messages[valMes].body.toLowerCase().includes(keyword)) {
+                                _resultMessages.push(rooms[roomID].messages[valMes])
+                            }
+            
+                            return null;
+                        })
+                
+                        self.postMessage({
+                            result: {
+                                messages: _resultMessages,
+                                error: ""
+                            }
+                        })
+                    }
+                }else {
+                    self.close();
+                }
+            }));
+
+            searchLocalRoomMessageWithKeywordWorker.postMessage({
+                rooms: tapTalkRooms,
+                roomID: roomID,
+                keyword: keyword
+            });
+
+            searchLocalRoomMessageWithKeywordWorker.addEventListener('message', (e) => {
+                let { result } = e.data;
+                
+                if(result.error === "") {
+                    callback.onSuccess({
+                        keyword: keyword,
+                        roomID: roomID,
+                        messages: result.messages
+                    })
+                }else {
+                    callback.onError(result.error);
+                }
+
+                searchLocalRoomMessageWithKeywordWorker.postMessage({isClose: true});
+            });
+        }else {
+            callback.onError("Worker is not supported");
+        }
+    },
+
+    searchLocalMessageWithKeyword: (keyword, callback) => {
+        if(window.Worker) {
+            var searchLocalMessageWithKeywordWorker = new WebWorker(() => self.addEventListener('message', function(e) {
+                let {rooms, keyword, isClose} = e.data;
+                let _resultMessages = [];
+
+                if(!isClose) {
+                    Object.keys(rooms).map(val => {
+                        Object.keys(rooms[val].messages).map(valMes => {
+                            if(rooms[val].messages[valMes].body !== null && rooms[val].messages[valMes].body.toLowerCase().includes(keyword)) {
+                                _resultMessages.push(rooms[val].messages[valMes])
+                            }
+            
+                            return null;
+                        })
+                    
+                        return null;
+                    })
+
+                    self.postMessage({
+                        result: {
+                            messages: _resultMessages
+                        }
+                    })
+                }else {
+                    self.close();
+                }
+            }));
+    
+            searchLocalMessageWithKeywordWorker.postMessage({
+                rooms: tapTalkRooms,
+                keyword: keyword
+            });
+
+            searchLocalMessageWithKeywordWorker.addEventListener('message', (e) => {
+                let { result } = e.data;
+                
+                callback.onSuccess({
+                    messages: result.messages
+                })
+
+                searchLocalMessageWithKeywordWorker.postMessage({isClose: true});
+            });
+        }else {
+            callback.onError("Worker is not supported");
         }
     }
 }
