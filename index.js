@@ -21,7 +21,8 @@ var refreshAccessTokenCallbackArray = [];
 var isConnectRunning = false;
 var isDoneFirstSetupRoomList = false;
 var isNeedToCallApiUpdateRoomList = true;
-let isFirstConnectedToWebSocket = false;
+var isFirstConnectedToWebSocket = false;
+var taptalkStarMessageHashmap = {};
 
 var db;
 // window.indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
@@ -3354,7 +3355,6 @@ exports.tapCoreMessageManager  = {
         }else {
             console.log("Worker is not supported");
         }
-
     },
 
     markMessageAsDelivered : (message) => {
@@ -3410,6 +3410,121 @@ exports.tapCoreMessageManager  = {
 						console.error('there was an error!', err);
 					});
 			}
+        }
+    },
+
+    fetchStarredMessages : async (roomID, isLoadMore, callback) => {
+        console.log(taptalkStarMessageHashmap)
+        let url = `${baseApiUrl}/v1/chat/message/get_starred_list`;
+        let _this = this;
+        let isRunApi = false;
+
+        if(
+            (isLoadMore && (taptalkStarMessageHashmap[roomID] && taptalkStarMessageHashmap[roomID].hasMore)) || 
+            !taptalkStarMessageHashmap[roomID]
+        ) {
+            isRunApi = true;
+        }
+
+        let runApiFetchStarredMessage = () => {
+            if(this.taptalk.isAuthenticated()) {
+                let userData = getLocalStorageObject('TapTalk.UserData');
+                authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+                doXMLHTTPRequest('POST', authenticationHeader, url, {
+                    roomID: roomID, 
+                    pageNumber: !taptalkStarMessageHashmap[roomID] ? 1 : taptalkStarMessageHashmap[roomID].pageNumber, 
+                    pageSize: 2
+                })
+                    .then(function (response) {
+                        if(response.error.code === "") {
+                            for(var i in response.data.messages) {
+                                response.data.messages[i].body = decryptKey(response.data.messages[i].body, response.data.messages[i].localID);
+
+                                if((response.data.messages[i].data !== "")) {
+                                    var messageIndex = response.data.messages[i];
+                                    messageIndex.data = JSON.parse(decryptKey(messageIndex.data, messageIndex.localID));
+                                }
+
+                                if(response.data.messages[i].quote.content !== "") {
+                                    var messageIndex = response.data.messages[i];
+                                    messageIndex.quote.content = decryptKey(messageIndex.quote.content, messageIndex.localID)
+                                }
+                            }
+
+                            if(!taptalkStarMessageHashmap[roomID]) {
+                                taptalkStarMessageHashmap = Object.assign({[roomID] : response.data}, taptalkStarMessageHashmap);
+                            }else {
+                                let tempMes = taptalkStarMessageHashmap[roomID].messages.slice();
+                                let tempPage = taptalkStarMessageHashmap[roomID].pageNumber;
+                                taptalkStarMessageHashmap[roomID] = response.data;
+                                taptalkStarMessageHashmap[roomID].pageNumber = tempPage;
+                                taptalkStarMessageHashmap[roomID].messages = tempMes.concat(taptalkStarMessageHashmap[roomID].messages);
+                            }
+
+                            taptalkStarMessageHashmap[roomID].pageNumber =  !taptalkStarMessageHashmap[roomID].pageNumber ? 2 : (taptalkStarMessageHashmap[roomID].pageNumber + 1);
+                            console.log(taptalkStarMessageHashmap)
+                            callback.onSuccess(taptalkStarMessageHashmap[roomID]);
+                        }else {
+                            _this.taptalk.checkErrorResponse(response, null, () => {
+                                _this.tapCoreMessageManager.fetchStarredMessages(roomID, callack)
+                            });
+                        }
+                    })
+                    .catch(function (err) {
+                        console.error('there was an error!', err);
+                    });
+            }
+        }
+
+        if(isRunApi) {
+            runApiFetchStarredMessage();
+        }else {
+            callback.onSuccess(taptalkStarMessageHashmap[roomID]);
+        }
+
+        // if(isLoadMore) {
+        //     runApiFetchStarredMessage();
+        // }
+    },
+
+    markMessageAsStarred : (roomID, messageIDs) => {
+        let url = `${baseApiUrl}/v1/chat/message/star`;
+        let _this = this;
+
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs: messageIDs})
+                .then(function (response) {
+                    _this.taptalk.checkErrorResponse(response, null, () => {
+                        _this.tapCoreMessageManager.markMessageAsStarred(roomID, messageIDs);
+                    });
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    markMessageAsUnstarred : (roomID, messageIDs) => {
+        let url = `${baseApiUrl}/v1/chat/message/unstar`;
+        let _this = this;
+
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs: messageIDs})
+                .then(function (response) {
+                    _this.taptalk.checkErrorResponse(response, null, () => {
+                        _this.tapCoreMessageManager.markMessageAsUnstarred(roomID, messageIDs);
+                    });
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
         }
     },
 
