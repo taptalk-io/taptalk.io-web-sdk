@@ -3433,7 +3433,7 @@ exports.tapCoreMessageManager  = {
                 doXMLHTTPRequest('POST', authenticationHeader, url, {
                     roomID: roomID, 
                     pageNumber: !taptalkStarMessageHashmap[roomID] ? 1 : taptalkStarMessageHashmap[roomID].pageNumber, 
-                    pageSize: 2
+                    pageSize: 50
                 })
                     .then(function (response) {
                         if(response.error.code === "") {
@@ -3462,7 +3462,7 @@ exports.tapCoreMessageManager  = {
                             }
 
                             taptalkStarMessageHashmap[roomID].pageNumber =  !taptalkStarMessageHashmap[roomID].pageNumber ? 2 : (taptalkStarMessageHashmap[roomID].pageNumber + 1);
-                            console.log(taptalkStarMessageHashmap)
+
                             callback.onSuccess(taptalkStarMessageHashmap[roomID]);
                         }else {
                             _this.taptalk.checkErrorResponse(response, null, () => {
