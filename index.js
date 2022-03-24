@@ -3414,7 +3414,6 @@ exports.tapCoreMessageManager  = {
     },
 
     fetchStarredMessages : async (roomID, isLoadMore, callback) => {
-        console.log(taptalkStarMessageHashmap)
         let url = `${baseApiUrl}/v1/chat/message/get_starred_list`;
         let _this = this;
         let isRunApi = false;
@@ -3486,6 +3485,75 @@ exports.tapCoreMessageManager  = {
         // if(isLoadMore) {
         //     runApiFetchStarredMessage();
         // }
+    },
+
+    fetchAllStarredMessages : async (roomID, callback) => {
+        let url = `${baseApiUrl}/v1/chat/message/get_starred_ids`;
+        let _this = this;
+
+        
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID})
+                .then(function (response) {
+                    if(response.error.code === "") {
+                        if(window.Worker) {
+                            var fetchAllStarredMessagesWorker = new WebWorker(() => self.addEventListener('message', function(e) {
+                                let {response, isClose} = e.data;
+                                let _resultMessages = {};
+                                
+                                if(!isClose) {
+                                    response.data.messageIDs.map(valMes => {
+                                        _resultMessages[valMes] = true;
+                        
+                                        return null;
+                                    })
+                                
+                                    self.postMessage({
+                                        result: {
+                                            messages: _resultMessages,
+                                            error: ""
+                                        }
+                                    })
+                                }else {
+                                    self.close();
+                                }
+                            }));
+                
+                            fetchAllStarredMessagesWorker.postMessage({
+                                response: response,
+                                roomID: roomID
+                            });
+                
+                            fetchAllStarredMessagesWorker.addEventListener('message', (e) => {
+                                let { result } = e.data;
+                                
+                                if(result.error === "") {
+                                    callback.onSuccess({
+                                        roomID: roomID,
+                                        messages: result.messages
+                                    })
+                                }else {
+                                    callback.onError(result.error);
+                                }
+                
+                                fetchAllStarredMessagesWorker.postMessage({isClose: true});
+                            });
+                        }else {
+                            callback.onError("Worker is not supported");
+                        }
+                    }else {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.fetchAllStarredMessages(roomID, callack)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
     },
 
     markMessageAsStarred : (roomID, messageIDs) => {
