@@ -1,6 +1,9 @@
-/* 24-03-2022 15:15  v1.23.0-beta.0*/
+/* 25-03-2022 18:00  v1.23.0-beta.1*/
 // changes:
 // 1. star message
+// 2. earchLocalRoomMessageWithKeyword
+// 3. searchLocalMessageWithKeyword
+// 4. mark as read and unread
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -2112,7 +2115,67 @@ exports.tapCoreChatRoomManager = {
                     console.error('there was an error!', err);
                 });
         }
-	}	
+    },
+    
+    
+    markRoomAsUnread : (roomIDs, callback) => {
+        let url = `${baseApiUrl}/v1/client/room/mark_as_unread`;
+        let _this = this;
+
+        let runSetIsMarkAsUnread = async () => {
+            for(let i = 0;i < roomIDs.length;i++) {
+                tapTalkRoomListHashmap[roomIDs[i]].isMarkAsUnread = true;
+            }
+
+            callback.onSuccess(tapTalkRoomListHashmap);
+        }
+
+        runSetIsMarkAsUnread();
+
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, {roomIDs: roomIDs})
+                .then(function (response) {
+                    _this.taptalk.checkErrorResponse(response, null, () => {
+                        _this.tapCoreChatRoomManager.markRoomAsUnread(roomIDs, callback);
+                    });
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+    
+    getMarkRoomAsUnread : (callback) => {
+        let url = `${baseApiUrl}/v1/client/room/get_unread_room_ids`;
+        let _this = this;
+
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, {})
+                .then(function (response) {
+                    if(response.error.code === "") {
+                        console.log(response)
+                        // for(let i = 0;i < roomIDs.length;i++) {
+                        //     tapTalkRoomListHashmap[roomIDs[i]].isMarkAsUnread = true;
+                        // }
+
+						callback.onSuccess(response);
+                    }else {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreChatRoomManager.getMarkRoomAsUnread(callback)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    }
 }
 
 exports.tapCoreMessageManager  = {
@@ -3354,6 +3417,7 @@ exports.tapCoreMessageManager  = {
             console.log("Worker is not supported");
         }
     },
+
 
     markMessageAsDelivered : (message) => {
         let url = `${baseApiUrl}/v1/chat/message/feedback/delivered`;
