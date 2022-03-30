@@ -24,6 +24,7 @@ var isDoneFirstSetupRoomList = false;
 var isNeedToCallApiUpdateRoomList = true;
 var isFirstConnectedToWebSocket = false;
 var taptalkStarMessageHashmap = {};
+var taptalkUnreadMessageList = {};
 
 var db;
 // window.indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
@@ -1225,7 +1226,11 @@ exports.tapCoreRoomListManager = {
 					data.lastMessage = message;
 					data.unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
 	
-					tapTalkRoomListHashmap[message.room.roomID] = data;
+                    tapTalkRoomListHashmap[message.room.roomID] = data;
+                    
+                    if(taptalkUnreadMessageList[message.room.roomID]) {
+                        tapTalkRoomListHashmap[message.room.roomID].isMarkAsUnread = true;
+                    }
 				}else { //if room list exist
 					if(tapTalkRoomListHashmap[message.room.roomID].lastMessage.created < message.created) {
 						data.lastMessage = message;
@@ -1336,7 +1341,7 @@ exports.tapCoreRoomListManager = {
 			localIDNewMessage.data = JSON.parse(decryptKey(localIDNewMessage.data, localIDNewMessage.localID));
 		}
 
-		//room list action
+        //room list action
 		this.tapCoreRoomListManager.setRoomListLastMessage(message);
 		//room list action
     },
@@ -1576,7 +1581,7 @@ exports.tapCoreChatRoomManager = {
         return tapTalkRooms;
     },
 
-    sendStartTypingEmit : (roomID) => {
+    sendStartTypingEmit : async (roomID) => {
         let emitData = {
             eventName: SOCKET_START_TYPING,
             data: {
@@ -1588,7 +1593,7 @@ exports.tapCoreChatRoomManager = {
         webSocket.send(JSON.stringify(emitData));
     },
 
-    sendStopTypingEmit : (roomID) => {
+    sendStopTypingEmit : async (roomID) => {
         let emitData = {
             eventName: SOCKET_STOP_TYPING,
             data: {
@@ -1794,7 +1799,7 @@ exports.tapCoreChatRoomManager = {
         }
     },
 
-    getGroupChatRoom : (groupId, callback) => {
+    getGroupChatRoom : async (groupId, callback) => {
         let _this = this;
         let url = `${baseApiUrl}/v1/client/room/get`;
         
@@ -2159,11 +2164,12 @@ exports.tapCoreChatRoomManager = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {})
                 .then(function (response) {
                     if(response.error.code === "") {
-                        console.log(response)
-                        // for(let i = 0;i < roomIDs.length;i++) {
-                        //     tapTalkRoomListHashmap[roomIDs[i]].isMarkAsUnread = true;
-                        // }
-
+                        if(response.data.unreadRoomIDs.length > 0) {
+                            response.data.unreadRoomIDs.map(val => {
+                                taptalkUnreadMessageList[val] = true;
+                            })
+                        }
+                        
 						callback.onSuccess(response);
                     }else {
                         _this.taptalk.checkErrorResponse(response, null, () => {
@@ -3303,8 +3309,8 @@ exports.tapCoreMessageManager  = {
 									messageIndex.quote.content = decryptKey(messageIndex.quote.content, messageIndex.localID)
 								}
 								
-								currentRoomMessages[responseMessage[i].localID] = responseMessage[i];
-							}
+                                currentRoomMessages[responseMessage[i].localID] = responseMessage[i];
+                            }
 
 							var newAPIAfterResponse = currentRoomMessages;
 
@@ -3340,7 +3346,7 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    markMessageAsRead : (message) => {
+    markMessageAsRead : async (message) => {
         let url = `${baseApiUrl}/v1/chat/message/feedback/read`;
         let _this = this;
 
@@ -3363,7 +3369,7 @@ exports.tapCoreMessageManager  = {
     markAllMessagesInRoomAsRead : (roomID) => {
         if(window.Worker) {
             var markAllMessagesInRoomAsReadWorker = new WebWorker(() => self.addEventListener('message', function(e) {
-                let {rooms, roomID, isClose} = e.data;
+                let {rooms, roomID, roomList, taptalkUnreadMessageList, isClose} = e.data;
                 let _resultMessages = [];
                 
                 if(!isClose) {
@@ -3381,10 +3387,15 @@ exports.tapCoreMessageManager  = {
             
                             return null;
                         })
+                        
+                        roomList[roomID].isMarkAsUnread = false;
+                        delete taptalkUnreadMessageList.roomID;
                 
                         self.postMessage({
                             result: {
-                                messages: _resultMessages,
+                                _taptalkUnreadMessageList: taptalkUnreadMessageList,
+                                messages: _resultMessages.length === 0 ? [rooms[roomID].messages[Object.keys(rooms[roomID].messages)[0]].messageID] : _resultMessages,
+                                roomList: roomList,
                                 error: ""
                             }
                         })
@@ -3395,16 +3406,19 @@ exports.tapCoreMessageManager  = {
             }));
 
             markAllMessagesInRoomAsReadWorker.postMessage({
+                taptalkUnreadMessageList: taptalkUnreadMessageList,
                 rooms: tapTalkRooms,
+                roomList: tapTalkRoomListHashmap,
                 roomID: roomID
             });
 
             markAllMessagesInRoomAsReadWorker.addEventListener('message', (e) => {
                 let { result } = e.data;
 
-                if(result.messages.length > 0) {
-                    this.tapCoreMessageManager.markMessageAsRead(result.messages);
-                }
+                tapTalkRoomListHashmap = result.roomList;
+                taptalkUnreadMessageList = result._taptalkUnreadMessageList;
+
+                this.tapCoreMessageManager.markMessageAsRead(result.messages);
                 
                 if(result.error !== "") {
                     console.log("Room not found")
