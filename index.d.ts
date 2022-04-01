@@ -1,0 +1,1 @@
+declare module "@taptalk.io/web-sdk";

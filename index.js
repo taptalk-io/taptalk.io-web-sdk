@@ -1,9 +1,13 @@
-/* 25-03-2022 18:00  v1.23.0-beta.1*/
+/* 01-04-2022 12:00  v1.23.0*/
 // changes:
-// 1. star message
-// 2. earchLocalRoomMessageWithKeyword
-// 3. searchLocalMessageWithKeyword
-// 4. mark as read and unread
+// 1. searchLocalRoomMessageWithKeyword
+// 2. searchLocalMessageWithKeyword
+// 3. markMessageAsStarred 
+// 4. markMessageAsUnstarred
+// 5. fetchAllStarredMessages
+// 6. markRoomAsUnread
+// 7. getMarkRoomAsUnread
+// 8. index.d.ts
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -2123,7 +2127,7 @@ exports.tapCoreChatRoomManager = {
     },
     
     
-    markRoomAsUnread : (roomIDs, callback) => {
+    markChatRoomAsUnread : (roomIDs, callback) => {
         let url = `${baseApiUrl}/v1/client/room/mark_as_unread`;
         let _this = this;
 
@@ -2144,7 +2148,7 @@ exports.tapCoreChatRoomManager = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {roomIDs: roomIDs})
                 .then(function (response) {
                     _this.taptalk.checkErrorResponse(response, null, () => {
-                        _this.tapCoreChatRoomManager.markRoomAsUnread(roomIDs, callback);
+                        _this.tapCoreChatRoomManager.markChatRoomAsUnread(roomIDs, callback);
                     });
                 })
                 .catch(function (err) {
@@ -2153,7 +2157,7 @@ exports.tapCoreChatRoomManager = {
         }
     },
     
-    getMarkRoomAsUnread : (callback) => {
+    getMarkedAsUnreadChatRoomList : (callback) => {
         let url = `${baseApiUrl}/v1/client/room/get_unread_room_ids`;
         let _this = this;
 
@@ -2173,7 +2177,7 @@ exports.tapCoreChatRoomManager = {
 						callback.onSuccess(response);
                     }else {
                         _this.taptalk.checkErrorResponse(response, null, () => {
-                            _this.tapCoreChatRoomManager.getMarkRoomAsUnread(callback)
+                            _this.tapCoreChatRoomManager.getMarkedAsUnreadChatRoomList(callback)
                         });
                     }
                 })
@@ -3563,7 +3567,7 @@ exports.tapCoreMessageManager  = {
         // }
     },
 
-    fetchAllStarredMessages : async (roomID, callback) => {
+    getStarredMessageIds : async (roomID, callback) => {
         let url = `${baseApiUrl}/v1/chat/message/get_starred_ids`;
         let _this = this;
 
@@ -3622,7 +3626,7 @@ exports.tapCoreMessageManager  = {
                         }
                     }else {
                         _this.taptalk.checkErrorResponse(response, null, () => {
-                            _this.tapCoreMessageManager.fetchAllStarredMessages(roomID, callack)
+                            _this.tapCoreMessageManager.getStarredMessageIds(roomID, callack)
                         });
                     }
                 })
@@ -3632,7 +3636,7 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    markMessageAsStarred : (roomID, messageIDs) => {
+    starMessage : (roomID, messageIDs) => {
         let url = `${baseApiUrl}/v1/chat/message/star`;
         let _this = this;
 
@@ -3643,7 +3647,7 @@ exports.tapCoreMessageManager  = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs: messageIDs})
                 .then(function (response) {
                     _this.taptalk.checkErrorResponse(response, null, () => {
-                        _this.tapCoreMessageManager.markMessageAsStarred(roomID, messageIDs);
+                        _this.tapCoreMessageManager.starMessage(roomID, messageIDs);
                     });
                 })
                 .catch(function (err) {
@@ -3652,7 +3656,7 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    markMessageAsUnstarred : (roomID, messageIDs) => {
+    unstarMessage : (roomID, messageIDs) => {
         let url = `${baseApiUrl}/v1/chat/message/unstar`;
         let _this = this;
 
@@ -3663,7 +3667,7 @@ exports.tapCoreMessageManager  = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs: messageIDs})
                 .then(function (response) {
                     _this.taptalk.checkErrorResponse(response, null, () => {
-                        _this.tapCoreMessageManager.markMessageAsUnstarred(roomID, messageIDs);
+                        _this.tapCoreMessageManager.unstarMessage(roomID, messageIDs);
                     });
                 })
                 .catch(function (err) {
