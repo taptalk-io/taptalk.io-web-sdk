@@ -1,4 +1,4 @@
-/* 01-04-2022 12:00  v1.23.0*/
+/* 04-04-2022 18:00  v1.23.1-beta.0*/
 // changes:
 // 1. searchLocalRoomMessageWithKeyword
 // 2. searchLocalMessageWithKeyword
@@ -8,6 +8,7 @@
 // 6. markRoomAsUnread
 // 7. getMarkRoomAsUnread
 // 8. index.d.ts
+// 9. fix reconnect issue
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -233,8 +234,8 @@ function doXMLHTTPRequest(method, header, url, data, isMultipart= false) {
 
         xhr.onerror = function () {
             reject({
-            status: xhr.status,
-            statusText: xhr.statusText
+                status: xhr.status,
+                statusText: xhr.statusText
             });
         };
     });
@@ -795,6 +796,9 @@ exports.taptalk = {
             })
             .catch(function (err) {
                 console.error('Augh, there was an error!', err);
+                setTimeout(() => {
+                    _this.taptalk.testAccessToken(callback);
+                }, 1000)
             });
     },
 
