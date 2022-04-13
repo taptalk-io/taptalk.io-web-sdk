@@ -1,13 +1,7 @@
-/* 01-04-2022 12:00  v1.23.0*/
+/* 13-04-2022 12:00  v1.23.1 */
 // changes:
-// 1. searchLocalRoomMessageWithKeyword
-// 2. searchLocalMessageWithKeyword
-// 3. markMessageAsStarred 
-// 4. markMessageAsUnstarred
-// 5. fetchAllStarredMessages
-// 6. markRoomAsUnread
-// 7. getMarkRoomAsUnread
-// 8. index.d.ts
+// 1. fix reconnect issue
+// 2. start message callback
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -233,8 +227,8 @@ function doXMLHTTPRequest(method, header, url, data, isMultipart= false) {
 
         xhr.onerror = function () {
             reject({
-            status: xhr.status,
-            statusText: xhr.statusText
+                status: xhr.status,
+                statusText: xhr.statusText
             });
         };
     });
@@ -795,6 +789,9 @@ exports.taptalk = {
             })
             .catch(function (err) {
                 console.error('Augh, there was an error!', err);
+                setTimeout(() => {
+                    _this.taptalk.testAccessToken(callback);
+                }, 1000)
             });
     },
 
@@ -3636,7 +3633,7 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    starMessage : (roomID, messageIDs) => {
+    starMessage : (roomID, messageIDs, callback) => {
         let url = `${baseApiUrl}/v1/chat/message/star`;
         let _this = this;
 
@@ -3646,9 +3643,13 @@ exports.tapCoreMessageManager  = {
 
             doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs: messageIDs})
                 .then(function (response) {
-                    _this.taptalk.checkErrorResponse(response, null, () => {
-                        _this.tapCoreMessageManager.starMessage(roomID, messageIDs);
-                    });
+                    if(response.error.code === "") {
+                        callback.onSuccess(response.data);
+                    }else {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.starMessage(roomID, messageIDs, callback);
+                        });
+                    }
                 })
                 .catch(function (err) {
                     console.error('there was an error!', err);
@@ -3656,7 +3657,7 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    unstarMessage : (roomID, messageIDs) => {
+    unstarMessage : (roomID, messageIDs, callback) => {
         let url = `${baseApiUrl}/v1/chat/message/unstar`;
         let _this = this;
 
@@ -3666,9 +3667,13 @@ exports.tapCoreMessageManager  = {
 
             doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs: messageIDs})
                 .then(function (response) {
-                    _this.taptalk.checkErrorResponse(response, null, () => {
-                        _this.tapCoreMessageManager.unstarMessage(roomID, messageIDs);
-                    });
+                    if(response.error.code === "") {
+                        callback.onSuccess(response.data);
+                    }else {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.unstarMessage(roomID, messageIDs, callback);
+                        });
+                    }
                 })
                 .catch(function (err) {
                     console.error('there was an error!', err);
