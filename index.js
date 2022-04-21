@@ -1,7 +1,6 @@
-/* 13-04-2022 12:00  v1.23.1 */
+/* 13-04-2022 12:00  v1.24.0-beta.0 */
 // changes:
-// 1. fix reconnect issue
-// 2. start message callback
+// 1. sendVoiceMessage
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -194,6 +193,8 @@ const CHAT_MESSAGE_TYPE_FILE = 1004;
 const CHAT_MESSAGE_TYPE_LOCATION = 1005;
 const CHAT_MESSAGE_TYPE_CONTACT = 1006;
 const CHAT_MESSAGE_TYPE_STICKER = 1007;
+const CHAT_MESSAGE_TYPE_VOICE = 1008;
+const CHAT_MESSAGE_TYPE_AUDIO = 1009;
 const CHAT_MESSAGE_TYPE_PRODUCT = 2001;
 const CHAT_MESSAGE_TYPE_CATEORY = 2002;
 const CHAT_MESSAGE_TYPE_PAYMENT_CONFIRMATION = 2004;
@@ -3169,6 +3170,124 @@ exports.tapCoreMessageManager  = {
 
     sendFileMessageWithoutEmit : (file, room, callback, quotedMessage = false, forwardMessage = false) => {
         this.tapCoreMessageManager.actionSendFileMessage(file, room, callback, false, quotedMessage, forwardMessage);
+    },
+
+    actionSendVoiceMessage : (file, room, callback, isSendEmit, quotedMessage, forwardMessage) => {
+        if(file.size > projectConfigs.core.chatMediaMaxFileSize) {
+            callback.onError('90302', "Maximum file size is "+bytesToSize(projectConfigs.core.chatMediaMaxFileSize));
+        }else {
+            let currentLocalID = guid();
+            let bodyValue = `📎 ${file.name}`;
+    
+            let uploadData = {
+                file: file,
+                caption: "",
+                room: room.roomID
+            };
+            
+            let data = "";
+    
+            if(forwardMessage && forwardMessage.data !== "") {
+                data = forwardMessage.data;
+            }else {
+                data = {
+                    fileObject: file,
+                    fileName: file.name,
+                    mediaType: file.type,
+                    size: file.size,
+                    fileID: ""
+                };
+            }
+            
+            let _MESSAGE_MODEL = quotedMessage ? 
+                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValue, room, CHAT_MESSAGE_TYPE_VOICE, data, quotedMessage, currentLocalID)
+                :
+                forwardMessage ?
+                    this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, forwardMessage.data !== "" ? forwardMessage.data : "", null, forwardMessage)
+                    :
+                    this.tapCoreMessageManager.constructTapTalkMessageModel(bodyValue, room, CHAT_MESSAGE_TYPE_VOICE, data, currentLocalID)
+            ;
+            
+            let _message = JSON.parse(JSON.stringify(_MESSAGE_MODEL));
+    
+            _message.body = forwardMessage ? forwardMessage.body : bodyValue;
+            _message.data = data;
+    
+            if(quotedMessage) {
+                _message.quote.content = quotedMessage.body;
+            }
+            
+            this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
+            
+            if(forwardMessage) {
+                let emitData = {
+                    eventName: SOCKET_NEW_MESSAGE,
+                    data: _MESSAGE_MODEL
+                };
+                
+                callback.onStart(_message);
+                tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
+                this.tapCoreMessageManager.sendActionMessage(file, room, callback, false, false);
+            }else {
+                _message.bytesUpload = 0;
+                _message.percentageUpload = 0;
+                callback.onStart(_message);
+                tapUplQueue.addToQueue(_message.localID, uploadData, {
+                    onProgress: (percentage, bytes) => {
+                        callback.onProgress(currentLocalID, percentage, bytes);
+                    },
+    
+                    onSuccess: (response) => {
+                        if(response) {
+                            response.fileName = file.name;
+                            let _messageForCallback = JSON.parse(JSON.stringify(_message));
+                            _messageForCallback.data = response;
+                            _messageForCallback.body = bodyValue;
+    
+                            if(quotedMessage) {
+                                _messageForCallback.quote.content = quotedMessage.body;
+                            }
+                            
+                            callback.onSuccess(_messageForCallback);
+    
+                            if(isSendEmit) {
+                                let _messageClone = JSON.parse(JSON.stringify(_message));
+                                _messageClone.body = encryptKey(_messageClone.body, _messageClone.localID);
+                                _messageClone.data = encryptKey(JSON.stringify(response), _messageClone.localID);
+    
+                                if(quotedMessage) {
+                                    _messageClone.quote.content = encryptKey(quotedMessage.body, _messageClone.localID);
+                                }
+    
+                                // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_messageClone);
+                                
+                                let emitData = {
+                                    eventName: SOCKET_NEW_MESSAGE,
+                                    data: _messageClone
+                                };
+                                
+                                // tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
+                            }
+    
+                            // tapUplQueue.processNext();
+                        }
+                    },
+    
+                    onError: (error) => {
+                        callback.onError(error);
+                    }
+                });
+            }
+    
+        }
+    },
+
+    sendVoiceMessage : (file, room, callback, quotedMessage = false, forwardMessage = false) => {
+        this.tapCoreMessageManager.actionSendVoiceMessage(file, room, callback, true, quotedMessage, forwardMessage);
+    },
+
+    sendVoiceMessageWithoutEmit : (file, room, callback, quotedMessage = false, forwardMessage = false) => {
+        this.tapCoreMessageManager.actionSendVoiceMessage(file, room, callback, false, quotedMessage, forwardMessage);
     },
 
     messagesObjectToArray : (messages) => {
