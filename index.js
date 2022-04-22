@@ -1,6 +1,6 @@
-/* 13-04-2022 12:00  v1.24.0-beta.0 */
+/* 22-04-2022 15:00  v1.23.2 */
 // changes:
-// 1. sendVoiceMessage
+// 1. repair fetchStarredMessage
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -3612,14 +3612,14 @@ exports.tapCoreMessageManager  = {
     fetchStarredMessages : async (roomID, isLoadMore, callback) => {
         let url = `${baseApiUrl}/v1/chat/message/get_starred_list`;
         let _this = this;
-        let isRunApi = false;
+        // let isRunApi = false;
 
-        if(
-            (isLoadMore && (taptalkStarMessageHashmap[roomID] && taptalkStarMessageHashmap[roomID].hasMore)) || 
-            !taptalkStarMessageHashmap[roomID]
-        ) {
-            isRunApi = true;
-        }
+        // if(
+        //     (isLoadMore && (taptalkStarMessageHashmap[roomID] && taptalkStarMessageHashmap[roomID].hasMore)) || 
+        //     !taptalkStarMessageHashmap[roomID]
+        // ) {
+        //     isRunApi = true;
+        // }
 
         let runApiFetchStarredMessage = () => {
             if(this.taptalk.isAuthenticated()) {
@@ -3658,7 +3658,6 @@ exports.tapCoreMessageManager  = {
                             }
 
                             taptalkStarMessageHashmap[roomID].pageNumber =  !taptalkStarMessageHashmap[roomID].pageNumber ? 2 : (taptalkStarMessageHashmap[roomID].pageNumber + 1);
-
                             callback.onSuccess(taptalkStarMessageHashmap[roomID]);
                         }else {
                             _this.taptalk.checkErrorResponse(response, null, () => {
@@ -3672,11 +3671,11 @@ exports.tapCoreMessageManager  = {
             }
         }
 
-        if(isRunApi) {
+        // if(isRunApi) {
             runApiFetchStarredMessage();
-        }else {
-            callback.onSuccess(taptalkStarMessageHashmap[roomID]);
-        }
+        // }else {
+        //     callback.onSuccess(taptalkStarMessageHashmap[roomID]);
+        // }
 
         // if(isLoadMore) {
         //     runApiFetchStarredMessage();
@@ -3763,6 +3762,7 @@ exports.tapCoreMessageManager  = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs: messageIDs})
                 .then(function (response) {
                     if(response.error.code === "") {
+                        taptalkStarMessageHashmap[roomID].
                         callback.onSuccess(response.data);
                     }else {
                         _this.taptalk.checkErrorResponse(response, null, () => {
