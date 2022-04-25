@@ -1,4 +1,4 @@
-/* 25-04-2022 13:30  v1.23.3 */
+/* 25-04-2022 16:00  v1.23.4 */
 // changes:
 // 1. repair fetchStarredMessage
 // 2. repair fetch starred
@@ -3635,20 +3635,30 @@ exports.tapCoreMessageManager  = {
                     .then(function (response) {
                         if(response.error.code === "") {
                             let resHasMore = response.data.hasMore;
+                            let newMes = [];
 
                             for(var i in response.data.messages) {
-                                response.data.messages[i].body = decryptKey(response.data.messages[i].body, response.data.messages[i].localID);
+                                if(
+                                    !taptalkStarMessageHashmap[roomID] || 
+                                    (taptalkStarMessageHashmap[roomID].messages.findIndex(v => v.messageID === response.data.messages[i].messageID) === -1)
+                                ) {
+                                    response.data.messages[i].body = decryptKey(response.data.messages[i].body, response.data.messages[i].localID);
+    
+                                    if((response.data.messages[i].data !== "")) {
+                                        var messageIndex = response.data.messages[i];
+                                        messageIndex.data = JSON.parse(decryptKey(messageIndex.data, messageIndex.localID));
+                                    }
+    
+                                    if(response.data.messages[i].quote.content !== "") {
+                                        var messageIndex = response.data.messages[i];
+                                        messageIndex.quote.content = decryptKey(messageIndex.quote.content, messageIndex.localID)
+                                    }
 
-                                if((response.data.messages[i].data !== "")) {
-                                    var messageIndex = response.data.messages[i];
-                                    messageIndex.data = JSON.parse(decryptKey(messageIndex.data, messageIndex.localID));
-                                }
-
-                                if(response.data.messages[i].quote.content !== "") {
-                                    var messageIndex = response.data.messages[i];
-                                    messageIndex.quote.content = decryptKey(messageIndex.quote.content, messageIndex.localID)
+                                    newMes.push(response.data.messages[i]);
                                 }
                             }
+
+                            response.data.messages = newMes;
 
                             if(!taptalkStarMessageHashmap[roomID]) {
                                 taptalkStarMessageHashmap = Object.assign({[roomID] : response.data}, taptalkStarMessageHashmap);
