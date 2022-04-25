@@ -1,4 +1,4 @@
-/* 22-04-2022 15:00  v1.23.2 */
+/* 22-04-2022 15:00  v1.24.0 */
 // changes:
 // 1. repair fetchStarredMessage
 
@@ -3060,7 +3060,7 @@ exports.tapCoreMessageManager  = {
 			callback.onError('90302', "Maximum file size is "+bytesToSize(projectConfigs.core.chatMediaMaxFileSize));
 		}else {
             let currentLocalID = guid();
-            let bodyValue = `📎 ${file.name}`;
+            let bodyValue = `🎤 Voice`;
 
             let uploadData = {
                 file: file,
@@ -3172,7 +3172,7 @@ exports.tapCoreMessageManager  = {
         this.tapCoreMessageManager.actionSendFileMessage(file, room, callback, false, quotedMessage, forwardMessage);
     },
 
-    actionSendVoiceMessage : (file, room, callback, isSendEmit, quotedMessage, forwardMessage) => {
+    actionSendVoiceMessage : (file, duration, room, callback, isSendEmit, quotedMessage, forwardMessage) => {
         if(file.size > projectConfigs.core.chatMediaMaxFileSize) {
             callback.onError('90302', "Maximum file size is "+bytesToSize(projectConfigs.core.chatMediaMaxFileSize));
         }else {
@@ -3195,7 +3195,8 @@ exports.tapCoreMessageManager  = {
                     fileName: file.name,
                     mediaType: file.type,
                     size: file.size,
-                    fileID: ""
+                    fileID: "",
+                    duration: duration
                 };
             }
             
@@ -3282,12 +3283,12 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    sendVoiceMessage : (file, room, callback, quotedMessage = false, forwardMessage = false) => {
-        this.tapCoreMessageManager.actionSendVoiceMessage(file, room, callback, true, quotedMessage, forwardMessage);
+    sendVoiceMessage : (file, duration, room, callback, quotedMessage = false, forwardMessage = false) => {
+        this.tapCoreMessageManager.actionSendVoiceMessage(file, duration, room, callback, true, quotedMessage, forwardMessage);
     },
 
-    sendVoiceMessageWithoutEmit : (file, room, callback, quotedMessage = false, forwardMessage = false) => {
-        this.tapCoreMessageManager.actionSendVoiceMessage(file, room, callback, false, quotedMessage, forwardMessage);
+    sendVoiceMessageWithoutEmit : (file, duration, room, callback, quotedMessage = false, forwardMessage = false) => {
+        this.tapCoreMessageManager.actionSendVoiceMessage(file, duration, room, callback, false, quotedMessage, forwardMessage);
     },
 
     messagesObjectToArray : (messages) => {
@@ -3629,7 +3630,7 @@ exports.tapCoreMessageManager  = {
                 doXMLHTTPRequest('POST', authenticationHeader, url, {
                     roomID: roomID, 
                     pageNumber: !taptalkStarMessageHashmap[roomID] ? 1 : taptalkStarMessageHashmap[roomID].pageNumber, 
-                    pageSize: 50
+                    pageSize: 1
                 })
                     .then(function (response) {
                         if(response.error.code === "") {
