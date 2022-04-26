@@ -1,6 +1,6 @@
 /* 22-04-2022 15:00  v1.24.0 */
 // changes:
-// 1. repair fetchStarredMessage
+// 1. voice message
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -3610,7 +3610,7 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    fetchStarredMessages : async (roomID, isLoadMore, callback) => {
+    fetchStarredMessages : async (roomID, callback) => {
         let url = `${baseApiUrl}/v1/chat/message/get_starred_list`;
         let _this = this;
         // let isRunApi = false;
@@ -3634,19 +3634,31 @@ exports.tapCoreMessageManager  = {
                 })
                     .then(function (response) {
                         if(response.error.code === "") {
+                            let resHasMore = response.data.hasMore;
+                            let newMes = [];
+
                             for(var i in response.data.messages) {
-                                response.data.messages[i].body = decryptKey(response.data.messages[i].body, response.data.messages[i].localID);
+                                if(
+                                    !taptalkStarMessageHashmap[roomID] || 
+                                    (taptalkStarMessageHashmap[roomID].messages.findIndex(v => v.messageID === response.data.messages[i].messageID) === -1)
+                                ) {
+                                    response.data.messages[i].body = decryptKey(response.data.messages[i].body, response.data.messages[i].localID);
+    
+                                    if((response.data.messages[i].data !== "")) {
+                                        var messageIndex = response.data.messages[i];
+                                        messageIndex.data = JSON.parse(decryptKey(messageIndex.data, messageIndex.localID));
+                                    }
+    
+                                    if(response.data.messages[i].quote.content !== "") {
+                                        var messageIndex = response.data.messages[i];
+                                        messageIndex.quote.content = decryptKey(messageIndex.quote.content, messageIndex.localID)
+                                    }
 
-                                if((response.data.messages[i].data !== "")) {
-                                    var messageIndex = response.data.messages[i];
-                                    messageIndex.data = JSON.parse(decryptKey(messageIndex.data, messageIndex.localID));
-                                }
-
-                                if(response.data.messages[i].quote.content !== "") {
-                                    var messageIndex = response.data.messages[i];
-                                    messageIndex.quote.content = decryptKey(messageIndex.quote.content, messageIndex.localID)
+                                    newMes.push(response.data.messages[i]);
                                 }
                             }
+
+                            response.data.messages = newMes;
 
                             if(!taptalkStarMessageHashmap[roomID]) {
                                 taptalkStarMessageHashmap = Object.assign({[roomID] : response.data}, taptalkStarMessageHashmap);
@@ -3658,7 +3670,7 @@ exports.tapCoreMessageManager  = {
                                 taptalkStarMessageHashmap[roomID].messages = tempMes.concat(taptalkStarMessageHashmap[roomID].messages);
                             }
 
-                            taptalkStarMessageHashmap[roomID].pageNumber =  !taptalkStarMessageHashmap[roomID].pageNumber ? 2 : (taptalkStarMessageHashmap[roomID].pageNumber + 1);
+                            taptalkStarMessageHashmap[roomID].pageNumber =  !taptalkStarMessageHashmap[roomID].pageNumber ? (resHasMore ? 2 : 1) : (resHasMore ? (taptalkStarMessageHashmap[roomID].pageNumber + 1) : taptalkStarMessageHashmap[roomID].pageNumber);
                             callback.onSuccess(taptalkStarMessageHashmap[roomID]);
                         }else {
                             _this.taptalk.checkErrorResponse(response, null, () => {
@@ -3763,7 +3775,6 @@ exports.tapCoreMessageManager  = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs: messageIDs})
                 .then(function (response) {
                     if(response.error.code === "") {
-                        taptalkStarMessageHashmap[roomID].
                         callback.onSuccess(response.data);
                     }else {
                         _this.taptalk.checkErrorResponse(response, null, () => {
@@ -3783,7 +3794,21 @@ exports.tapCoreMessageManager  = {
 
         if(this.taptalk.isAuthenticated()) {
             let userData = getLocalStorageObject('TapTalk.UserData');
-            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`; 
+
+            let actionRemove = () => {
+                messageIDs.map(v => {
+                    let indexMes = taptalkStarMessageHashmap[roomID].messages.findIndex(val => val.messageID === v);
+
+                    if(indexMes !== -1) {
+                        taptalkStarMessageHashmap[roomID].messages.splice(indexMes, 1);
+                    }
+                })
+            }
+
+            if(taptalkStarMessageHashmap[roomID]) {
+                actionRemove();
+            }
 
             doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs: messageIDs})
                 .then(function (response) {
