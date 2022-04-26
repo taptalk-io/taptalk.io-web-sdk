@@ -3060,7 +3060,7 @@ exports.tapCoreMessageManager  = {
 			callback.onError('90302', "Maximum file size is "+bytesToSize(projectConfigs.core.chatMediaMaxFileSize));
 		}else {
             let currentLocalID = guid();
-            let bodyValue = `🎤 Voice`;
+            let bodyValue = `📎 ${file.name}`;
 
             let uploadData = {
                 file: file,
@@ -3177,7 +3177,7 @@ exports.tapCoreMessageManager  = {
             callback.onError('90302', "Maximum file size is "+bytesToSize(projectConfigs.core.chatMediaMaxFileSize));
         }else {
             let currentLocalID = guid();
-            let bodyValue = `📎 ${file.name}`;
+            let bodyValue = `🎤 Voice`;
     
             let uploadData = {
                 file: file,
@@ -3267,10 +3267,10 @@ exports.tapCoreMessageManager  = {
                                     data: _messageClone
                                 };
                                 
-                                // tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
+                                tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
                             }
     
-                            // tapUplQueue.processNext();
+                            tapUplQueue.processNext();
                         }
                     },
     
