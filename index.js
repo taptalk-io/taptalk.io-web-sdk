@@ -3228,7 +3228,7 @@ exports.tapCoreMessageManager  = {
                 
                 callback.onStart(_message);
                 tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
-                this.tapCoreMessageManager.sendActionMessage(file, room, callback, false, false);
+                this.tapCoreMessageManager.sendVoiceMessage(file, duration, room, callback, false, false);
             }else {
                 _message.bytesUpload = 0;
                 _message.percentageUpload = 0;
@@ -3240,7 +3240,7 @@ exports.tapCoreMessageManager  = {
     
                     onSuccess: (response) => {
                         if(response) {
-                            response.fileName = file.name;
+                            response.duration = duration;
                             let _messageForCallback = JSON.parse(JSON.stringify(_message));
                             _messageForCallback.data = response;
                             _messageForCallback.body = bodyValue;
@@ -3630,7 +3630,7 @@ exports.tapCoreMessageManager  = {
                 doXMLHTTPRequest('POST', authenticationHeader, url, {
                     roomID: roomID, 
                     pageNumber: !taptalkStarMessageHashmap[roomID] ? 1 : taptalkStarMessageHashmap[roomID].pageNumber, 
-                    pageSize: 1
+                    pageSize: 10
                 })
                     .then(function (response) {
                         if(response.error.code === "") {
@@ -3810,7 +3810,7 @@ exports.tapCoreMessageManager  = {
                 actionRemove();
             }
 
-            doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs: messageIDs})
+            doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs: ["19999999"]})
                 .then(function (response) {
                     if(response.error.code === "") {
                         callback.onSuccess(response.data);
