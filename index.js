@@ -3768,6 +3768,13 @@ exports.tapCoreMessageManager  = {
         let url = `${baseApiUrl}/v1/chat/message/star`;
         let _this = this;
 
+        if(taptalkStarMessageHashmap[roomID]) {
+            taptalkStarMessageHashmap[roomID].pageNumber = 1;
+            taptalkStarMessageHashmap[roomID].messages = [];
+            taptalkStarMessageHashmap[roomID].totalItems = 0;
+            taptalkStarMessageHashmap[roomID].totalPages = 1;
+        }
+
         if(this.taptalk.isAuthenticated()) {
             let userData = getLocalStorageObject('TapTalk.UserData');
             authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
