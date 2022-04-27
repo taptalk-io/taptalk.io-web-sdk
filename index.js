@@ -3630,7 +3630,7 @@ exports.tapCoreMessageManager  = {
                 doXMLHTTPRequest('POST', authenticationHeader, url, {
                     roomID: roomID, 
                     pageNumber: !taptalkStarMessageHashmap[roomID] ? 1 : taptalkStarMessageHashmap[roomID].pageNumber, 
-                    pageSize: 10
+                    pageSize: 50
                 })
                     .then(function (response) {
                         if(response.error.code === "") {
