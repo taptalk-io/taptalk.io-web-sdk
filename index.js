@@ -1,7 +1,6 @@
-/* 25-04-2022 16:00  v1.23.4 */
+/* 27-04-2022 16:00  v1.23.5 */
 // changes:
 // 1. repair fetchStarredMessage
-// 2. repair fetch starred
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -3767,6 +3766,13 @@ exports.tapCoreMessageManager  = {
     starMessage : (roomID, messageIDs, callback) => {
         let url = `${baseApiUrl}/v1/chat/message/star`;
         let _this = this;
+
+        if(taptalkStarMessageHashmap[roomID]) {
+            taptalkStarMessageHashmap[roomID].pageNumber = 1;
+            taptalkStarMessageHashmap[roomID].messages = [];
+            taptalkStarMessageHashmap[roomID].totalItems = 0;
+            taptalkStarMessageHashmap[roomID].totalPages = 1;
+        }
 
         if(this.taptalk.isAuthenticated()) {
             let userData = getLocalStorageObject('TapTalk.UserData');
