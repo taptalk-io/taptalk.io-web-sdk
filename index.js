@@ -2713,7 +2713,7 @@ exports.tapCoreMessageManager  = {
         uploadData.append("roomID", data.room);
         uploadData.append("file", data.file);
         uploadData.append("caption", data.caption);
-        uploadData.append("fileType", ((fileType === "image" || fileType === "video") ? fileType : "file")); 
+        uploadData.append("fileType", ((fileType === "image" || fileType === "video" || fileType === "audio") ? fileType : "file")); 
 
         if(_this.taptalk.isAuthenticated()) {
             let userData = getLocalStorageObject('TapTalk.UserData');
