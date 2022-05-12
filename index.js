@@ -1,6 +1,7 @@
-/* 09-05-2022 15:00  v1.24.0-beta.1 */
+/* 12-05-2022 12:00  v1.24.0 */
 // changes:
 // 1. voice message
+// 2. file size limit on send message without emit
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -2738,8 +2739,10 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    actionSendImageMessage : (file, caption, room, callback, isSendEmit, quotedMessage, forwardMessage) => {
-        if(file.size > projectConfigs.core.chatMediaMaxFileSize) {
+    actionSendImageMessage : (file, caption, room, callback, isSendEmit, quotedMessage, forwardMessage, fileSizeLimit) => {
+        if(fileSizeLimit && (file.size > fileSizeLimit)) {
+            callback.onError('90302', "Maximum file size is "+bytesToSize(fileSizeLimit));
+        }else if(file.size > projectConfigs.core.chatMediaMaxFileSize) {
             callback.onError('90302', "Maximum file size is "+bytesToSize(projectConfigs.core.chatMediaMaxFileSize));
         }else {
             let bodyValueImage = `${caption !== "" ? `🖼 ${caption}` : '🖼 Photo'}`;
@@ -2892,12 +2895,14 @@ exports.tapCoreMessageManager  = {
         this.tapCoreMessageManager.actionSendImageMessage(file, caption, room, callback, true, quotedMessage, forwardMessage);
     },
 
-    sendImageMessageWithoutEmit : (file, caption, room, callback, quotedMessage = false, forwardMessage = false) => {
-        this.tapCoreMessageManager.actionSendImageMessage(file, caption, room, callback, false, quotedMessage, forwardMessage);
+    sendImageMessageWithoutEmit : (file, caption, room, callback, quotedMessage = false, forwardMessage = false, fileSizeLimit = false) => {
+        this.tapCoreMessageManager.actionSendImageMessage(file, caption, room, callback, false, quotedMessage, forwardMessage, fileSizeLimit);
     },
 
-    actionSendVideoMessage : (file, caption, room, callback, isSendEmit, quotedMessage, forwardMessage) => {
-        if(file.size > projectConfigs.core.chatMediaMaxFileSize) {
+    actionSendVideoMessage : (file, caption, room, callback, isSendEmit, quotedMessage, forwardMessage, fileSizeLimit) => {
+        if(fileSizeLimit && (file.size > fileSizeLimit)) {
+            callback.onError('90302', "Maximum file size is "+bytesToSize(fileSizeLimit));
+        }else if(file.size > projectConfigs.core.chatMediaMaxFileSize) {
             callback.onError('90302', "Maximum file size is "+bytesToSize(projectConfigs.core.chatMediaMaxFileSize));
         }else {
             let bodyValueVideo = `${caption !== "" ? `🎥 ${caption}` : '🎥 Video'}`;
@@ -3051,14 +3056,16 @@ exports.tapCoreMessageManager  = {
         this.tapCoreMessageManager.actionSendVideoMessage(file, caption, room, callback, true, quotedMessage, forwardMessage);
     },
 
-    sendVideoMessageWithoutEmit : (file, caption, room, callback, quotedMessage = false, forwardMessage = false) => {
-        this.tapCoreMessageManager.actionSendVideoMessage(file, caption, room, callback, false, quotedMessage, forwardMessage);
+    sendVideoMessageWithoutEmit : (file, caption, room, callback, quotedMessage = false, forwardMessage = false, fileSizeLimit = false) => {
+        this.tapCoreMessageManager.actionSendVideoMessage(file, caption, room, callback, false, quotedMessage, forwardMessage, fileSizeLimit);
     },
 
-    actionSendFileMessage : (file, room, callback, isSendEmit, quotedMessage, forwardMessage) => {
-        if(file.size > projectConfigs.core.chatMediaMaxFileSize) {
-			callback.onError('90302', "Maximum file size is "+bytesToSize(projectConfigs.core.chatMediaMaxFileSize));
-		}else {
+    actionSendFileMessage : (file, room, callback, isSendEmit, quotedMessage, forwardMessage, fileSizeLimit) => {
+        if(fileSizeLimit && (file.size > fileSizeLimit)) {
+            callback.onError('90302', "Maximum file size is "+bytesToSize(fileSizeLimit));
+        }else if(file.size > projectConfigs.core.chatMediaMaxFileSize) {
+            callback.onError('90302', "Maximum file size is "+bytesToSize(projectConfigs.core.chatMediaMaxFileSize));
+        }else {
             let currentLocalID = guid();
             let bodyValue = `📎 ${file.name}`;
 
@@ -3168,8 +3175,8 @@ exports.tapCoreMessageManager  = {
         this.tapCoreMessageManager.actionSendFileMessage(file, room, callback, true, quotedMessage, forwardMessage);
     },
 
-    sendFileMessageWithoutEmit : (file, room, callback, quotedMessage = false, forwardMessage = false) => {
-        this.tapCoreMessageManager.actionSendFileMessage(file, room, callback, false, quotedMessage, forwardMessage);
+    sendFileMessageWithoutEmit : (file, room, callback, quotedMessage = false, forwardMessage = false, fileSizeLimit = false) => {
+        this.tapCoreMessageManager.actionSendFileMessage(file, room, callback, false, quotedMessage, forwardMessage, fileSizeLimit);
     },
 
     actionSendVoiceMessage : (file, duration, room, callback, isSendEmit, quotedMessage, forwardMessage) => {
