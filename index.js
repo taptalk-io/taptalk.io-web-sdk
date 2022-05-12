@@ -1,4 +1,4 @@
-/* 22-04-2022 15:00  v1.24.0 */
+/* 09-05-2022 15:00  v1.24.0-beta.1 */
 // changes:
 // 1. voice message
 
@@ -3817,7 +3817,7 @@ exports.tapCoreMessageManager  = {
                 actionRemove();
             }
 
-            doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs: ["19999999"]})
+            doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs})
                 .then(function (response) {
                     if(response.error.code === "") {
                         callback.onSuccess(response.data);
