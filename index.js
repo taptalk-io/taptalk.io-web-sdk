@@ -1,6 +1,7 @@
 /* 18-05-2022 18:00  v1.25.0 */
 // changes:
 // 1. multi forward
+// 2. new method sendForwardMessage
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -2577,6 +2578,29 @@ exports.tapCoreMessageManager  = {
         }
     },
 
+    sendForwardMessage: (room, callback, forwardMessage) => {
+        if(this.taptalk.isAuthenticated()) {
+            let _MESSAGE_MODEL =  this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, forwardMessage.data !== "" ? forwardMessage.data : "", null, forwardMessage);
+
+            let emitData = {
+                eventName: SOCKET_NEW_MESSAGE,
+                data: _MESSAGE_MODEL
+            };
+                    
+            let _message = JSON.parse(JSON.stringify(_MESSAGE_MODEL));
+
+            _message.body = forwardMessage ? forwardMessage.body : messageBody;
+            _message.data = forwardMessage ? (forwardMessage.data !== "" ? forwardMessage.data : "") : "";
+            // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
+
+            this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
+
+            callback(_message);
+            
+            tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
+        }
+    },
+
     sendTextMessageWithoutEmit : (messageBody, room, callback, quotedMessage = false, forwardMessage = false) => {
         if(this.taptalk.isAuthenticated()) {
             let _MESSAGE_MODEL = quotedMessage ? 
@@ -2894,6 +2918,13 @@ exports.tapCoreMessageManager  = {
     },
 
     sendImageMessage : (file, caption, room, callback, quotedMessage = false, forwardMessage = false, forwardOnly = false) => {
+        console.log("f", file);
+        console.log("cap", caption);
+        console.log("r", room);
+        console.log("ca", callback);
+        console.log("quoted", quotedMessage);
+        console.log("f", forwardMessage);
+        console.log("fo", forwardOnly);
         this.tapCoreMessageManager.actionSendImageMessage(file, caption, room, callback, true, quotedMessage, forwardMessage, false, forwardOnly);
     },
 
