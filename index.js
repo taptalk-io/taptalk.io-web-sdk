@@ -2918,13 +2918,6 @@ exports.tapCoreMessageManager  = {
     },
 
     sendImageMessage : (file, caption, room, callback, quotedMessage = false, forwardMessage = false, forwardOnly = false) => {
-        console.log("f", file);
-        console.log("cap", caption);
-        console.log("r", room);
-        console.log("ca", callback);
-        console.log("quoted", quotedMessage);
-        console.log("f", forwardMessage);
-        console.log("fo", forwardOnly);
         this.tapCoreMessageManager.actionSendImageMessage(file, caption, room, callback, true, quotedMessage, forwardMessage, false, forwardOnly);
     },
 
@@ -3089,7 +3082,7 @@ exports.tapCoreMessageManager  = {
     },
     
     sendVideoMessage : (file, caption, room, callback, quotedMessage = false, forwardMessage = false, forwardOnly = false) => {
-        this.tapCoreMessageManager.actionSendVideoMessage(file, caption, room, callback, true, quotedMessage, forwardMessage, forwardOnly);
+        this.tapCoreMessageManager.actionSendVideoMessage(file, caption, room, callback, true, quotedMessage, forwardMessage, false, forwardOnly);
     },
 
     sendVideoMessageWithoutEmit : (file, caption, room, callback, quotedMessage = false, forwardMessage = false, fileSizeLimit = false) => {
@@ -3211,7 +3204,7 @@ exports.tapCoreMessageManager  = {
     },
 
     sendFileMessage : (file, room, callback, quotedMessage = false, forwardMessage = false, forwardOnly = false) => {
-        this.tapCoreMessageManager.actionSendFileMessage(file, room, callback, true, quotedMessage, forwardMessage, forwardOnly);
+        this.tapCoreMessageManager.actionSendFileMessage(file, room, callback, true, quotedMessage, forwardMessage, false, forwardOnly);
     },
 
     sendFileMessageWithoutEmit : (file, room, callback, quotedMessage = false, forwardMessage = false, fileSizeLimit = false) => {
