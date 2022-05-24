@@ -1,4 +1,4 @@
-/* 18-05-2022 18:00  v1.25.0 */
+/* 18-05-2022 18:00  v1.25.0-beta.0 */
 // changes:
 // 1. multi forward
 // 2. new method sendForwardMessage
