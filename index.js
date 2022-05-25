@@ -1,7 +1,8 @@
-/* 18-05-2022 18:00  v1.25.0-beta.0 */
+/* 25-05-2022 18:00  v1.25.0-beta.1 */
 // changes:
 // 1. multi forward
 // 2. new method sendForwardMessage
+// 3. repair constructMessage
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -2288,11 +2289,15 @@ exports.tapCoreMessageManager  = {
 
         if(forwardMessage) {
             //forward message
-            _MESSAGE_MODEL["forwardFrom"]["userID"] = forwardMessage.user.userID;
-            _MESSAGE_MODEL["forwardFrom"]["xcUserID"] = forwardMessage.user.xcUserID;
-            _MESSAGE_MODEL["forwardFrom"]["fullname"] = forwardMessage.user.fullname;
-            _MESSAGE_MODEL["forwardFrom"]["messageID"] = forwardMessage.messageID;
-            _MESSAGE_MODEL["forwardFrom"]["localID"] = forwardMessage.localID;
+            if(forwardMessage.forwardFrom.fullname === "") {
+                _MESSAGE_MODEL["forwardFrom"]["userID"] = forwardMessage.user.userID;
+                _MESSAGE_MODEL["forwardFrom"]["xcUserID"] = forwardMessage.user.xcUserID;
+                _MESSAGE_MODEL["forwardFrom"]["fullname"] = forwardMessage.user.fullname;
+                _MESSAGE_MODEL["forwardFrom"]["messageID"] = forwardMessage.messageID;
+                _MESSAGE_MODEL["forwardFrom"]["localID"] = forwardMessage.localID;
+            }else {
+                _MESSAGE_MODEL["forwardFrom"] = forwardMessage.forwardFrom;
+            }
             //forward message
         }
 
