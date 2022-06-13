@@ -1,8 +1,6 @@
-/* 30-05-2022 18:00  v1.25.0 */
+/* 30-05-2022 18:00  v1.26.0-beta.0 */
 // changes:
-// 1. multi forward
-// 2. new method sendForwardMessage
-// 3. repair constructMessage
+// 1. edit message
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -2672,6 +2670,24 @@ exports.tapCoreMessageManager  = {
                 this.tapCoreMessageManager.sendTextMessage(messageBody, room, callback)
             }
         }
+    },
+
+    sendEmitWithEditedMessage : (message, newMessage, callback) => {
+        let _message = {...message};
+        _message.isEdited = true;
+
+        if(_message.data !== "" && _message.data.caption) {
+            _message.data.caption = newMessage;
+        }else {
+            _message.body = newMessage;
+        }
+        
+        let emitData = {
+            eventName: SOCKET_UPDATE_MESSAGE,
+            // data: _MESSAGE_MODEL
+        };
+        
+        callback(_message);
     },
 
     sendLocationMessage : (latitude, longitude, address, room, callback, quotedMessage = false, forwardOnly = false) => {
