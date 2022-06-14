@@ -1,4 +1,4 @@
-/* 30-05-2022 18:00  v1.26.0-beta.0 */
+/* 14-06-2022 18:00  v1.26.0-beta.0 */
 // changes:
 // 1. edit message
 
@@ -2676,9 +2676,9 @@ exports.tapCoreMessageManager  = {
     sendEmitWithEditedMessage : (message, newMessage, callback) => {
         let _message = {...message};
         
-        _message.isEdited = true;
-        
-        if(_message.data !== "" && _message.data.caption) {
+        _message.isMessageEdited = true;
+
+        if((_message.data !== "") && (typeof _message.data.caption !== "undefined")) {
             _message.data.caption = newMessage;
         }else {
             _message.body = newMessage;
@@ -2687,29 +2687,25 @@ exports.tapCoreMessageManager  = {
         let _MESSAGE_MODEL = {..._message};
 
         if(_message.data !== "" && _message.data.caption) {
-            _MESSAGE_MODEL.data = encryptKey(_MESSAGE_MODEL.data, _MESSAGE_MODEL.localID);
+            _MESSAGE_MODEL.data = encryptKey(JSON.stringify(_MESSAGE_MODEL.data), _MESSAGE_MODEL.localID);
         }else if(_message.quote.title !== "") {
-            _MESSAGE_MODEL.quote = encryptKey(_MESSAGE_MODEL.quote, _MESSAGE_MODEL.localID);
-        }else if(message.forwardFrom.fullname !== "") {
-            _MESSAGE_MODEL.forwardFrom = encryptKey(_MESSAGE_MODEL.forwardFrom, _MESSAGE_MODEL.localID);
-        }else {
-            _MESSAGE_MODEL.body = encryptKey(_MESSAGE_MODEL.body, _MESSAGE_MODEL.localID);
+            _MESSAGE_MODEL.quote.content = encryptKey(JSON.stringify(_MESSAGE_MODEL.quote.content), _MESSAGE_MODEL.localID);
         }
+
+        _MESSAGE_MODEL.body = encryptKey(_MESSAGE_MODEL.body, _MESSAGE_MODEL.localID);
         
         let emitData = {
             eventName: SOCKET_UPDATE_MESSAGE,
             data: _MESSAGE_MODEL
         };
 
-        // this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
+        if(_message.localID === tapTalkRoomListHashmap[_message.room.roomID].lastMessage.localID) {
+            this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
+        }
 
         callback(_message);
         
         tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
-        
-        //
-        
-        // callback(_message);
     },
 
     sendLocationMessage : (latitude, longitude, address, room, callback, quotedMessage = false, forwardOnly = false) => {
