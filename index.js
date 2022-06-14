@@ -2658,6 +2658,7 @@ exports.tapCoreMessageManager  = {
             if(quotedMessage) {
                 _message.quote.content = quotedMessage.body;
             }
+
             // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
 
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
@@ -2674,20 +2675,41 @@ exports.tapCoreMessageManager  = {
 
     sendEmitWithEditedMessage : (message, newMessage, callback) => {
         let _message = {...message};
+        
         _message.isEdited = true;
-
+        
         if(_message.data !== "" && _message.data.caption) {
             _message.data.caption = newMessage;
         }else {
             _message.body = newMessage;
         }
+
+        let _MESSAGE_MODEL = {..._message};
+
+        if(_message.data !== "" && _message.data.caption) {
+            _MESSAGE_MODEL.data = encryptKey(_MESSAGE_MODEL.data, _MESSAGE_MODEL.localID);
+        }else if(_message.quote.title !== "") {
+            _MESSAGE_MODEL.quote = encryptKey(_MESSAGE_MODEL.quote, _MESSAGE_MODEL.localID);
+        }else if(message.forwardFrom.fullname !== "") {
+            _MESSAGE_MODEL.forwardFrom = encryptKey(_MESSAGE_MODEL.forwardFrom, _MESSAGE_MODEL.localID);
+        }else {
+            _MESSAGE_MODEL.body = encryptKey(_MESSAGE_MODEL.body, _MESSAGE_MODEL.localID);
+        }
         
         let emitData = {
             eventName: SOCKET_UPDATE_MESSAGE,
-            // data: _MESSAGE_MODEL
+            data: _MESSAGE_MODEL
         };
-        
+
+        // this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
+
         callback(_message);
+        
+        tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
+        
+        //
+        
+        // callback(_message);
     },
 
     sendLocationMessage : (latitude, longitude, address, room, callback, quotedMessage = false, forwardOnly = false) => {
