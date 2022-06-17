@@ -2686,7 +2686,7 @@ exports.tapCoreMessageManager  = {
 
         let _MESSAGE_MODEL = {..._message};
 
-        if(_message.data !== "" && _message.data.caption) {
+        if(_message.data !== "" && typeof _message.data.caption !== "undefined") {
             _MESSAGE_MODEL.data = encryptKey(JSON.stringify(_MESSAGE_MODEL.data), _MESSAGE_MODEL.localID);
         }else if(_message.quote.title !== "") {
             _MESSAGE_MODEL.quote.content = encryptKey(JSON.stringify(_MESSAGE_MODEL.quote.content), _MESSAGE_MODEL.localID);
