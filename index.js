@@ -1,6 +1,6 @@
-/* 14-06-2022 18:00  v1.26.0-beta.0 */
+/* 14-06-2022 18:00  v1.27.0 */
 // changes:
-// 1. edit message
+// 1. multiple forward messages
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -2601,6 +2601,58 @@ exports.tapCoreMessageManager  = {
             callback(_message);
             
             tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
+        }
+    },
+
+    sendForwardMessages: (room, callback, forwardMessages) => {
+        if(this.taptalk.isAuthenticated()) {
+            forwardMessages.map((forwardMessage) => {
+                let _MESSAGE_MODEL =  this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, forwardMessage.data !== "" ? forwardMessage.data : "", null, forwardMessage);
+    
+                let emitData = {
+                    eventName: SOCKET_NEW_MESSAGE,
+                    data: _MESSAGE_MODEL
+                };
+                        
+                let _message = JSON.parse(JSON.stringify(_MESSAGE_MODEL));
+    
+                _message.body = forwardMessage ? forwardMessage.body : messageBody;
+                _message.data = forwardMessage ? (forwardMessage.data !== "" ? forwardMessage.data : "") : "";
+                // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
+    
+                this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
+    
+                callback(_message);
+                
+                tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
+            })
+        }
+    },
+
+    sendForwardMessagesOnMultipleRooms: (data, callback) => {
+        if(this.taptalk.isAuthenticated()) {
+            data.map((v) => {
+                v.messages.map((forwardMessage) => {
+                    let _MESSAGE_MODEL =  this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, v.room, forwardMessage.type, forwardMessage.data !== "" ? forwardMessage.data : "", null, forwardMessage);
+        
+                    let emitData = {
+                        eventName: SOCKET_NEW_MESSAGE,
+                        data: _MESSAGE_MODEL
+                    };
+                            
+                    let _message = JSON.parse(JSON.stringify(_MESSAGE_MODEL));
+        
+                    _message.body = forwardMessage ? forwardMessage.body : messageBody;
+                    _message.data = forwardMessage ? (forwardMessage.data !== "" ? forwardMessage.data : "") : "";
+                    // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
+        
+                    this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
+        
+                    callback(_message);
+                    
+                    tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
+                })
+            })
         }
     },
 
