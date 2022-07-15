@@ -2285,19 +2285,21 @@ exports.tapCoreMessageManager  = {
         _MESSAGE_MODEL["isDeleted"] = false;
         //message status
 
+        //forward message
         if(forwardMessage) {
-            //forward message
             if(forwardMessage.forwardFrom.fullname === "") {
                 _MESSAGE_MODEL["forwardFrom"]["userID"] = forwardMessage.user.userID;
                 _MESSAGE_MODEL["forwardFrom"]["xcUserID"] = forwardMessage.user.xcUserID;
                 _MESSAGE_MODEL["forwardFrom"]["fullname"] = forwardMessage.user.fullname;
-                _MESSAGE_MODEL["forwardFrom"]["messageID"] = forwardMessage.messageID;
-                _MESSAGE_MODEL["forwardFrom"]["localID"] = forwardMessage.localID;
             }else {
                 _MESSAGE_MODEL["forwardFrom"] = forwardMessage.forwardFrom;
             }
-            //forward message
+            
+            _MESSAGE_MODEL["forwardFrom"]["messageID"] = forwardMessage.messageID;
+            _MESSAGE_MODEL["forwardFrom"]["localID"] = forwardMessage.localID;
+            _MESSAGE_MODEL["forwardFrom"]["roomID"] = room.roomID;
         }
+        //forward message
 
         return _MESSAGE_MODEL;
     },
