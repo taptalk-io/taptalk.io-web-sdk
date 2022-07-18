@@ -2294,10 +2294,9 @@ exports.tapCoreMessageManager  = {
             }else {
                 _MESSAGE_MODEL["forwardFrom"] = forwardMessage.forwardFrom;
             }
-            
             _MESSAGE_MODEL["forwardFrom"]["messageID"] = forwardMessage.messageID;
             _MESSAGE_MODEL["forwardFrom"]["localID"] = forwardMessage.localID;
-            _MESSAGE_MODEL["forwardFrom"]["roomID"] = room.roomID;
+            _MESSAGE_MODEL["forwardFrom"]["roomID"] = forwardMessage.room.roomID;
         }
         //forward message
 
@@ -2591,13 +2590,13 @@ exports.tapCoreMessageManager  = {
                 eventName: SOCKET_NEW_MESSAGE,
                 data: _MESSAGE_MODEL
             };
-                    
+            
             let _message = JSON.parse(JSON.stringify(_MESSAGE_MODEL));
 
             _message.body = forwardMessage ? forwardMessage.body : messageBody;
             _message.data = forwardMessage ? (forwardMessage.data !== "" ? forwardMessage.data : "") : "";
             // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
-
+            
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
 
             callback(_message);
