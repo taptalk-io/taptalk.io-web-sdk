@@ -1278,25 +1278,21 @@ exports.tapCoreRoomListManager = {
 				if(!tapTalkRoomListHashmap[message.room.roomID]) { //if room list not exist
 					data.lastMessage = message;
 					data.unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
-                    
-                    //taptalk room list hashmap
+	
                     tapTalkRoomListHashmap[message.room.roomID] = data;
                     
                     if(taptalkUnreadMessageList[message.room.roomID]) {
                         tapTalkRoomListHashmap[message.room.roomID].isMarkAsUnread = true;
                     }
-                    //taptalk room list hashmap
 
                     //saved message
                     if(this.taptalk.isSavedMessageRoom(message.room.roomID)) {
-                        //pinned
                         tapTalkRoomListHashmapPinned[message.room.roomID] = data;
 
                         if(taptalkUnreadMessageList[message.room.roomID]) {
                             tapTalkRoomListHashmapPinned[message.room.roomID].isMarkAsUnread = true;
                         }
                     }else {
-                        //unpinned
                         tapTalkRoomListHashmapUnPinned[message.room.roomID] = data;
 
                         if(taptalkUnreadMessageList[message.room.roomID]) {
@@ -1305,23 +1301,19 @@ exports.tapCoreRoomListManager = {
                     }
                     //saved message
 				}else { //if room list exist
-                    //taptalk room list hashmap
 					if(tapTalkRoomListHashmap[message.room.roomID].lastMessage.created < message.created) {
 						data.lastMessage = message;
 	
 						tapTalkRoomListHashmap[message.room.roomID].lastMessage = data.lastMessage;
 					}
-                    //taptalk room list hashmap
 
                     //saved message
-                    //pinned
                     if(tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage.created < message.created) {
 						data.lastMessage = message;
 	
 						tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage = data.lastMessage;
 					}
 
-                    //unpinned
                     if(tapTalkRoomListHashmapUnPinned[message.room.roomID].lastMessage.created < message.created) {
 						data.lastMessage = message;
 	
@@ -1336,7 +1328,6 @@ exports.tapCoreRoomListManager = {
 
             //new emit action
 			if(action === 'new emit') {
-                //taptalk room list hashmap
 				if(!tapTalkRoomListHashmap[message.room.roomID]) {
                     data.lastMessage = message;
 					data.unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
@@ -1354,7 +1345,6 @@ exports.tapCoreRoomListManager = {
 	
 					tapTalkRoomListHashmap = Object.assign({[message.room.roomID] : temporaryRoomList}, tapTalkRoomListHashmap);
 				}
-                //taptalk room list hashmap
 
                 //saved message
                 //saved message
@@ -1363,7 +1353,6 @@ exports.tapCoreRoomListManager = {
 
 			//update emit action
 			if(action === 'update emit') {
-                //taptalk room list hashmap
                 if(!tapTalkRoomListHashmap[message.room.roomID]) {
                     data.lastMessage = message;
 					data.unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
@@ -1382,7 +1371,6 @@ exports.tapCoreRoomListManager = {
                         unreadCounter();
                     }
                 }
-                //taptalk room list hashmap
 
                 //saved message
                 //saved message
