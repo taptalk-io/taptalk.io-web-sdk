@@ -461,6 +461,15 @@ var handleNewMessage = (message) => {
 
     let removeRoom = (roomID) => {
         delete tapTalkRoomListHashmap[roomID];
+
+        if(tapTalkRoomListHashmapPinned[roomID]) {
+            delete tapTalkRoomListHashmapPinned[roomID];
+        }
+
+        if(tapTalkRoomListHashmapUnPinned[roomID]) {
+            delete tapTalkRoomListHashmapUnPinned[roomID];
+        }
+
 		delete tapTalkRooms[roomID];
 	}
     
@@ -688,6 +697,8 @@ exports.taptalk = {
             // _tapTalkEmitMessageQueue: tapTalkEmitMessageQueue,
             _taptalkRooms: tapTalkRooms,
             _tapTalkRoomListHashmap: tapTalkRoomListHashmap,
+            _tapTalkRoomListHashmapPinned: tapTalkRoomListHashmapPinned,
+            _tapTalkRoomListHashmapUnPinned: tapTalkRoomListHashmapUnPinned,
             _emitQueuue: tapEmitMsgQueue.emitQueue
         }
 
@@ -910,6 +921,8 @@ exports.taptalk = {
         localStorage.removeItem('TapTalk.UserData');        
         tapTalkRooms = {}; //room list with array of messages
         tapTalkRoomListHashmap = {}; //room list last message
+        tapTalkRoomListHashmapPinned = {}; //room list last message - pinned
+        tapTalkRoomListHashmapUnPinned = {}; //room list last message - unpinned
         tapRoomStatusListeners = [];
         tapMessageListeners = [];
         tapListener = [];
@@ -1206,26 +1219,26 @@ exports.tapCoreRoomListManager = {
 		}
 
 		let unreadCounter = () => {
-			if(tapTalkRoomListHashmap[message.room.roomID]) {
-				let count = tapTalkRoomListHashmap[message.room.roomID].unreadCount;
+			// if(tapTalkRoomListHashmap[message.room.roomID]) {
+			// 	let count = tapTalkRoomListHashmap[message.room.roomID].unreadCount;
 
-				if(!message.isRead) {
-					if((user !== message.user.userID)) {
-                        if(!tapTalkRooms[message.room.roomID][message.localID]) {
-                            count = count + 1; 
+			// 	if(!message.isRead) {
+			// 		if((user !== message.user.userID)) {
+            //             if(!tapTalkRooms[message.room.roomID][message.localID]) {
+            //                 count = count + 1; 
 
-                            tapTalkRoomListHashmap[message.room.roomID].unreadCount = count;
-                        }
-					}
-				}else {
-					if(count !== 0) {
-                        if(!tapTalkRooms[message.room.roomID][message.localID]) {
-                            count = 0;
-                            tapTalkRoomListHashmap[message.room.roomID].unreadCount = count;
-                        }
-					}
-                }
-			}
+            //                 tapTalkRoomListHashmap[message.room.roomID].unreadCount = count;
+            //             }
+			// 		}
+			// 	}else {
+			// 		if(count !== 0) {
+            //             if(!tapTalkRooms[message.room.roomID][message.localID]) {
+            //                 count = 0;
+            //                 tapTalkRoomListHashmap[message.room.roomID].unreadCount = count;
+            //             }
+			// 		}
+            //     }
+			// }
 
             //saved message
             if(tapTalkRoomListHashmapPinned[message.room.roomID]) {
@@ -1280,11 +1293,11 @@ exports.tapCoreRoomListManager = {
 					data.unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
                     
                     //taptalk room list hashmap
-                    tapTalkRoomListHashmap[message.room.roomID] = data;
+                    // tapTalkRoomListHashmap[message.room.roomID] = data;
                     
-                    if(taptalkUnreadMessageList[message.room.roomID]) {
-                        tapTalkRoomListHashmap[message.room.roomID].isMarkAsUnread = true;
-                    }
+                    // if(taptalkUnreadMessageList[message.room.roomID]) {
+                    //     tapTalkRoomListHashmap[message.room.roomID].isMarkAsUnread = true;
+                    // }
                     //taptalk room list hashmap
 
                     //saved message
@@ -1306,27 +1319,31 @@ exports.tapCoreRoomListManager = {
                     //saved message
 				}else { //if room list exist
                     //taptalk room list hashmap
-					if(tapTalkRoomListHashmap[message.room.roomID].lastMessage.created < message.created) {
-						data.lastMessage = message;
+					// if(tapTalkRoomListHashmap[message.room.roomID].lastMessage.created < message.created) {
+					// 	data.lastMessage = message;
 	
-						tapTalkRoomListHashmap[message.room.roomID].lastMessage = data.lastMessage;
-					}
+					// 	tapTalkRoomListHashmap[message.room.roomID].lastMessage = data.lastMessage;
+					// }
                     //taptalk room list hashmap
 
                     //saved message
-                    //pinned
-                    if(tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage.created < message.created) {
-						data.lastMessage = message;
-	
-						tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage = data.lastMessage;
-					}
-
-                    //unpinned
-                    if(tapTalkRoomListHashmapUnPinned[message.room.roomID].lastMessage.created < message.created) {
-						data.lastMessage = message;
-	
-						tapTalkRoomListHashmapUnPinned[message.room.roomID].lastMessage = data.lastMessage;
-					}
+                        //pinned
+                        if(tapTalkRoomListHashmapPinned[message.room.roomID]) {
+                            if(tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage.created < message.created) {
+                                data.lastMessage = message;
+            
+                                tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage = data.lastMessage;
+                            }
+                        }
+                        
+                        //unpinned
+                        if(tapTalkRoomListHashmapUnPinned[message.room.roomID]) {
+                            if(tapTalkRoomListHashmapUnPinned[message.room.roomID].lastMessage.created < message.created) {
+                                data.lastMessage = message;
+            
+                                tapTalkRoomListHashmapUnPinned[message.room.roomID].lastMessage = data.lastMessage;
+                            }
+                        }
                     //saved message
 
 					unreadCounter();
@@ -1337,26 +1354,63 @@ exports.tapCoreRoomListManager = {
             //new emit action
 			if(action === 'new emit') {
                 //taptalk room list hashmap
-				if(!tapTalkRoomListHashmap[message.room.roomID]) {
-                    data.lastMessage = message;
-					data.unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
+				// if(!tapTalkRoomListHashmap[message.room.roomID]) {
+                //     data.lastMessage = message;
+				// 	data.unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
 
-					tapTalkRoomListHashmap = Object.assign({[message.room.roomID] : data}, tapTalkRoomListHashmap);
-				}else {
-					unreadCounter();
-                    let temporaryRoomList = tapTalkRoomListHashmap[message.room.roomID];
+				// 	tapTalkRoomListHashmap = Object.assign({[message.room.roomID] : data}, tapTalkRoomListHashmap);
+				// }else {
+				// 	unreadCounter();
+                //     let temporaryRoomList = tapTalkRoomListHashmap[message.room.roomID];
                     
-                    if((temporaryRoomList.lastMessage.created !== message.created)) {
-						temporaryRoomList.lastMessage = message;
-					}
+                //     if((temporaryRoomList.lastMessage.created !== message.created)) {
+				// 		temporaryRoomList.lastMessage = message;
+				// 	}
 	
-					delete tapTalkRoomListHashmap[message.room.roomID];
+				// 	delete tapTalkRoomListHashmap[message.room.roomID];
 	
-					tapTalkRoomListHashmap = Object.assign({[message.room.roomID] : temporaryRoomList}, tapTalkRoomListHashmap);
-				}
+				// 	tapTalkRoomListHashmap = Object.assign({[message.room.roomID] : temporaryRoomList}, tapTalkRoomListHashmap);
+				// }
                 //taptalk room list hashmap
 
                 //saved message
+                if(this.taptalk.isSavedMessageRoom(message.room.roomID)) {
+                    if(!tapTalkRoomListHashmapPinned[message.room.roomID]) {
+                        data.lastMessage = message;
+                        data.unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
+    
+                        tapTalkRoomListHashmapPinned = Object.assign({[message.room.roomID] : data}, tapTalkRoomListHashmapPinned);
+                    }else {
+                        unreadCounter();
+                        let temporaryRoomList = tapTalkRoomListHashmapPinned[message.room.roomID];
+                        
+                        if((temporaryRoomList.lastMessage.created !== message.created)) {
+                            temporaryRoomList.lastMessage = message;
+                        }
+        
+                        delete tapTalkRoomListHashmapPinned[message.room.roomID];
+
+                        tapTalkRoomListHashmapPinned[message.room.roomID] = temporaryRoomList;
+                    }
+                }else {
+                    if(!tapTalkRoomListHashmapUnPinned[message.room.roomID]) {
+                        data.lastMessage = message;
+                        data.unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
+    
+                        tapTalkRoomListHashmapUnPinned = Object.assign({[message.room.roomID] : data}, tapTalkRoomListHashmapUnPinned);
+                    }else {
+                        unreadCounter();
+                        let temporaryRoomList = tapTalkRoomListHashmapUnPinned[message.room.roomID];
+                        
+                        if((temporaryRoomList.lastMessage.created !== message.created)) {
+                            temporaryRoomList.lastMessage = message;
+                        }
+        
+                        delete tapTalkRoomListHashmapUnPinned[message.room.roomID];
+        
+                        tapTalkRoomListHashmapUnPinned = Object.assign({[message.room.roomID] : temporaryRoomList}, tapTalkRoomListHashmapUnPinned);
+                    }
+                }
                 //saved message
 			}
 			//new emit action
@@ -1364,31 +1418,72 @@ exports.tapCoreRoomListManager = {
 			//update emit action
 			if(action === 'update emit') {
                 //taptalk room list hashmap
-                if(!tapTalkRoomListHashmap[message.room.roomID]) {
-                    data.lastMessage = message;
-					data.unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
+                // if(!tapTalkRoomListHashmap[message.room.roomID]) {
+                //     data.lastMessage = message;
+				// 	data.unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
 
-					tapTalkRoomListHashmap = Object.assign({[message.room.roomID] : data}, tapTalkRoomListHashmap);
-				}else {
-                    if((tapTalkRoomListHashmap[message.room.roomID].lastMessage.localID === message.localID)) {
-                        tapTalkRoomListHashmap[message.room.roomID].lastMessage = message;
-                    }else {
-                        if(tapTalkRoomListHashmap[message.room.roomID].lastMessage.created < message.created) {
-                            tapTalkRoomListHashmap[message.room.roomID].lastMessage = message;
-                        }
-                    }
+				// 	tapTalkRoomListHashmap = Object.assign({[message.room.roomID] : data}, tapTalkRoomListHashmap);
+				// }else {
+                //     if((tapTalkRoomListHashmap[message.room.roomID].lastMessage.localID === message.localID)) {
+                //         tapTalkRoomListHashmap[message.room.roomID].lastMessage = message;
+                //     }else {
+                //         if(tapTalkRoomListHashmap[message.room.roomID].lastMessage.created < message.created) {
+                //             tapTalkRoomListHashmap[message.room.roomID].lastMessage = message;
+                //         }
+                //     }
                     
-                    if(message.isRead) {
-                        unreadCounter();
-                    }
-                }
+                //     if(message.isRead) {
+                //         unreadCounter();
+                //     }
+                // }
                 //taptalk room list hashmap
 
                 //saved message
+                if(this.taptalk.isSavedMessageRoom(message.room.roomID)) {
+                    if(!tapTalkRoomListHashmapPinned[message.room.roomID]) {
+                        data.lastMessage = message;
+                        data.unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
+    
+                        tapTalkRoomListHashmapPinned = Object.assign({[message.room.roomID] : data}, tapTalkRoomListHashmapPinned);
+                    }else {
+                        if((tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage.localID === message.localID)) {
+                            tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage = message;
+                        }else {
+                            if(tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage.created < message.created) {
+                                tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage = message;
+                            }
+                        }
+                        
+                        if(message.isRead) {
+                            unreadCounter();
+                        }
+                    }
+                }else {
+                    if(!tapTalkRoomListHashmapUnPinned[message.room.roomID]) {
+                        data.lastMessage = message;
+                        data.unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
+    
+                        tapTalkRoomListHashmapUnPinned = Object.assign({[message.room.roomID] : data}, tapTalkRoomListHashmapUnPinned);
+                    }else {
+                        if((tapTalkRoomListHashmapUnPinned[message.room.roomID].lastMessage.localID === message.localID)) {
+                            tapTalkRoomListHashmapUnPinned[message.room.roomID].lastMessage = message;
+                        }else {
+                            if(tapTalkRoomListHashmapUnPinned[message.room.roomID].lastMessage.created < message.created) {
+                                tapTalkRoomListHashmapUnPinned[message.room.roomID].lastMessage = message;
+                            }
+                        }
+                        
+                        if(message.isRead) {
+                            unreadCounter();
+                        }
+                    }
+                }
                 //saved message
 			}
             //update emit action
 		}
+
+        tapTalkRoomListHashmap = Object.assign({...tapTalkRoomListHashmapPinned}, {...tapTalkRoomListHashmapUnPinned});
     },
 
     pushNewRoomToTaptalkRooms: (roomID) => {
@@ -1494,7 +1589,7 @@ exports.tapCoreRoomListManager = {
 					.then(function (response) {
 						if(response.error.code === "") {
                             let data = response.data.messages;
-                            console.log(data)
+
                             let messageIDs = [];
 							
 							for(let i in data) {
@@ -1514,9 +1609,6 @@ exports.tapCoreRoomListManager = {
                             
                             _this.tapCoreMessageManager.markMessageAsDelivered(messageIDs);
                             
-                            console.log("pinned", tapTalkRoomListHashmapPinned)
-                            
-                            console.log("unpinned", tapTalkRoomListHashmapUnPinned)
                             callback.onSuccess(tapTalkRoomListHashmap, tapTalkRooms);
 						}else {
 							_this.taptalk.checkErrorResponse(response, callback, () => {
@@ -2160,6 +2252,15 @@ exports.tapCoreChatRoomManager = {
     deleteMessageByRoomID : (roomID) => {
         if(this.taptalk.isAuthenticated()) {
             delete tapTalkRoomListHashmap[roomID];
+
+            if(!tapTalkRoomListHashmapPinned[roomID]) {
+                delete tapTalkRoomListHashmapPinned[roomID];
+            }
+
+            if(!tapTalkRoomListHashmapUnPinned[roomID]) {
+                delete tapTalkRoomListHashmapUnPinned[roomID];
+            }
+
 		    delete tapTalkRooms[roomID];
         }
     },
@@ -2231,7 +2332,6 @@ exports.tapCoreChatRoomManager = {
                 });
         }
     },
-    
     
     markChatRoomAsUnread : (roomIDs, callback) => {
         let url = `${baseApiUrl}/v1/client/room/mark_as_unread`;
@@ -2597,11 +2697,19 @@ exports.tapCoreMessageManager  = {
         newRoomListHashmap.lastMessage = messageModel;
 		newRoomListHashmap.unreadCount = (!messageModel.isRead && user !== messageModel.user.userID) ? 1 : 0;
 
-		tapTalkRoomListHashmap = Object.assign({[messageModel.room.roomID] : newRoomListHashmap}, tapTalkRoomListHashmap);
+		// tapTalkRoomListHashmap = Object.assign({[messageModel.room.roomID] : newRoomListHashmap}, tapTalkRoomListHashmap);
+
+        //saved message
+        if(this.taptalk.isSavedMessageRoom(messageModel.room.roomID)) {
+            tapTalkRoomListHashmapPinned = Object.assign({[messageModel.room.roomID] : newRoomListHashmap}, tapTalkRoomListHashmapPinned);
+        }else {
+            tapTalkRoomListHashmapUnPinned = Object.assign({[messageModel.room.roomID] : newRoomListHashmap}, tapTalkRoomListHashmapUnPinned);
+        }
+        //saved message
     },
 
     pushNewRoom: (messageModel) => {
-        let user = this.taptalk.getTaptalkActiveUser().userID;
+        // let user = this.taptalk.getTaptalkActiveUser().userID;
         
 		let newTaptalkRoom = {
 			messages: {},
@@ -2630,10 +2738,27 @@ exports.tapCoreMessageManager  = {
     pushNewMessageToRoomsAndChangeLastMessage : (message) => {
         let _message = {...message};
 
+        // if(tapTalkRooms[_message.room.roomID]) {
+        //     if(tapTalkRoomListHashmap[_message.room.roomID]) {
+        //         tapTalkRoomListHashmap[_message.room.roomID].lastMessage = _message;
+        //         tapTalkRoomListHashmap = Object.assign({[_message.room.roomID]: tapTalkRoomListHashmap[_message.room.roomID]}, tapTalkRoomListHashmap);
+        //     }else {
+        //         this.tapCoreRoomListManager.setRoomListLastMessage(_message, "new emit")
+        //     }
+
+        //     tapTalkRooms[_message.room.roomID].messages = Object.assign({[_message.localID]: _message}, tapTalkRooms[_message.room.roomID].messages);
+        // }else {
+        //     this.tapCoreMessageManager.pushNewRoom(_message);
+        // }
+
+        //saved message
         if(tapTalkRooms[_message.room.roomID]) {
-            if(tapTalkRoomListHashmap[_message.room.roomID]) {
-                tapTalkRoomListHashmap[_message.room.roomID].lastMessage = _message;
-                tapTalkRoomListHashmap = Object.assign({[_message.room.roomID]: tapTalkRoomListHashmap[_message.room.roomID]}, tapTalkRoomListHashmap);
+            if(tapTalkRoomListHashmapPinned[_message.room.roomID]) {
+                tapTalkRoomListHashmapPinned[_message.room.roomID].lastMessage = _message;
+                tapTalkRoomListHashmapPinned = Object.assign({[_message.room.roomID]: tapTalkRoomListHashmapPinned[_message.room.roomID]}, tapTalkRoomListHashmapPinned);
+            }else if(tapTalkRoomListHashmapUnPinned[_message.room.roomID]) {
+                tapTalkRoomListHashmapUnPinned[_message.room.roomID].lastMessage = _message;
+                tapTalkRoomListHashmapUnPinned = Object.assign({[_message.room.roomID]: tapTalkRoomListHashmapUnPinned[_message.room.roomID]}, tapTalkRoomListHashmapUnPinned);
             }else {
                 this.tapCoreRoomListManager.setRoomListLastMessage(_message, "new emit")
             }
@@ -2642,6 +2767,7 @@ exports.tapCoreMessageManager  = {
         }else {
             this.tapCoreMessageManager.pushNewRoom(_message);
         }
+        // saved message
     },
 
     sendCustomMessage : (messageModel, callback) => {
@@ -3732,7 +3858,7 @@ exports.tapCoreMessageManager  = {
     markAllMessagesInRoomAsRead : (roomID) => {
         if(window.Worker) {
             var markAllMessagesInRoomAsReadWorker = new WebWorker(() => self.addEventListener('message', function(e) {
-                let {rooms, roomID, roomList, taptalkUnreadMessageList, isClose} = e.data;
+                let {rooms, roomID, roomList, roomListPinned, roomListUnPinned, taptalkUnreadMessageList, isClose} = e.data;
                 let _resultMessages = [];
                 
                 if(!isClose) {
@@ -3751,14 +3877,25 @@ exports.tapCoreMessageManager  = {
                             return null;
                         })
                         
-                        roomList[roomID].isMarkAsUnread = false;
+                        // roomList[roomID].isMarkAsUnread = false;
+
+                        if(roomListPinned[roomID]) {
+                            roomListPinned[roomID].isMarkAsUnread = false;
+                        }
+
+                        if(roomListUnPinned[roomID]) {
+                            roomListUnPinned[roomID].isMarkAsUnread = false;
+                        }
+
                         delete taptalkUnreadMessageList.roomID;
                 
                         self.postMessage({
                             result: {
                                 _taptalkUnreadMessageList: taptalkUnreadMessageList,
                                 messages: _resultMessages.length === 0 ? [rooms[roomID].messages[Object.keys(rooms[roomID].messages)[0]].messageID] : _resultMessages,
-                                roomList: roomList,
+                                // roomList: roomList,
+                                roomListPinned: roomListPinned,
+                                roomListUnPinned: roomListUnPinned,
                                 error: ""
                             }
                         })
@@ -3771,14 +3908,18 @@ exports.tapCoreMessageManager  = {
             markAllMessagesInRoomAsReadWorker.postMessage({
                 taptalkUnreadMessageList: taptalkUnreadMessageList,
                 rooms: tapTalkRooms,
-                roomList: tapTalkRoomListHashmap,
+                // roomList: tapTalkRoomListHashmap,
+                roomListPinned: tapTalkRoomListHashmapPinned,
+                roomListUnPinned: tapTalkRoomListHashmapUnPinned,
                 roomID: roomID
             });
 
             markAllMessagesInRoomAsReadWorker.addEventListener('message', (e) => {
                 let { result } = e.data;
 
-                tapTalkRoomListHashmap = result.roomList;
+                // tapTalkRoomListHashmap = result.roomList;
+                tapTalkRoomListHashmapPinned = result.roomListPinned;
+                tapTalkRoomListHashmapUnPinned = result.roomListUnPinned;
                 taptalkUnreadMessageList = result._taptalkUnreadMessageList;
 
                 this.tapCoreMessageManager.markMessageAsRead(result.messages);
