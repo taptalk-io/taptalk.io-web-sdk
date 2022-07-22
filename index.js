@@ -1,4 +1,4 @@
-/* 19-07-2022 18:00  v1.28.0-beta.0 */
+/* 21-07-2022 13:30  v1.28.0-beta.0 */
 // changes:
 // 1. saved message
 
@@ -4461,7 +4461,6 @@ exports.tapCoreContactManager  = {
                 })
                 .catch(function (err) {
                     console.error('there was an error!', err);
-                    
                 });
         }
     },
