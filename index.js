@@ -1,4 +1,4 @@
-/* 21-07-2022 13:30  v1.28.0-beta.0 */
+/* 27-07-2022 15:30  v1.28.0-beta.1 */
 // changes:
 // 1. saved message
 
@@ -1285,7 +1285,7 @@ exports.tapCoreRoomListManager = {
             //saved message
 		}
 
-		if(!message.isHidden) {
+		if(!message.isHidden || (message.isDeleted && message.isHidden)) {
 			//first load roomlist
 			if(action === null) {
 				if(!tapTalkRoomListHashmap[message.room.roomID]) { //if room list not exist
@@ -1453,6 +1453,28 @@ exports.tapCoreRoomListManager = {
                                 tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage = message;
                             }
                         }
+
+                        //is delete & is hidden
+                        if(message.isDeleted && message.isHidden) {
+                            let runIsDeleteIsHidden = () => {
+                                let lastMessageLocalID = tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage.localID;
+                                
+                                // let firstIndexKey = Object.keys(tapTalkRooms[message.room.roomID].messages)[0];
+                                
+                                if(message.localID === lastMessageLocalID) {
+                                    let latestMessageShow = this.tapCoreChatRoomManager.findLatestShowMessage(message.room.roomID); 
+                                    
+                                    if(latestMessageShow) {
+                                        tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage = latestMessageShow;
+                                    }else {
+                                        delete tapTalkRoomListHashmapPinned[message.room.roomID];
+                                    }   
+                                }
+                            }
+
+                            runIsDeleteIsHidden();
+                        }
+                        //is delete & is hidden
                         
                         if(message.isRead) {
                             unreadCounter();
@@ -1781,6 +1803,20 @@ exports.tapCoreRoomListManager = {
 exports.tapCoreChatRoomManager = {
     getAllRooms : () => {
         return tapTalkRooms;
+    },
+
+    findLatestShowMessage : (roomID) => {
+        let v = false;
+        let _messages = tapTalkRooms[roomID].messages;
+
+        for(let i = 0; i < Object.keys(_messages).length; i++) {
+            if(!_messages[Object.keys(_messages)[i]].isHidden) {
+                v = _messages[Object.keys(_messages)[i]];
+                break;
+            }
+        }
+
+        return v;
     },
 
     sendStartTypingEmit : async (roomID) => {
