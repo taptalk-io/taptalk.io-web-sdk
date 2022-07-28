@@ -1,4 +1,4 @@
-/* 27-07-2022 15:30  v1.28.0-beta.1 */
+/* 28-07-2022 18.00  v1.28.0-beta.3 */
 // changes:
 // 1. saved message
 
@@ -2652,11 +2652,16 @@ exports.tapCoreMessageManager  = {
             let _quoteContent = "";
 
             //title
-            if(quotedMessage.type === CHAT_MESSAGE_TYPE_FILE) {
-                _quoteTitle = quotedMessage.data.fileName.split(".")[0];
+            if(quoteTitle) {
+                _quoteTitle = quoteTitle;
             }else {
-                _quoteTitle = quotedMessage.user.fullname;
+                if(quotedMessage.type === CHAT_MESSAGE_TYPE_FILE) {
+                    _quoteTitle = quotedMessage.data.fileName.split(".")[0];
+                }else {
+                    _quoteTitle = (quotedMessage.forwardFrom && quotedMessage.forwardFrom.fullname !== "") ? quotedMessage.forwardFrom.fullname : quotedMessage.user.fullname;
+                }
             }
+            
             //title
 
             //content
@@ -2683,7 +2688,8 @@ exports.tapCoreMessageManager  = {
         //quote
 
         // reply to
-        if(quotedMessage && !quoteContent && !quoteTitle && !quoteImageUrl ) {
+        // if(quotedMessage && !quoteContent && !quoteTitle && !quoteImageUrl ) {
+        if(quotedMessage) {
             _MESSAGE_MODEL["replyTo"]["fullname"] = quotedMessage.user.fullname;
             _MESSAGE_MODEL["replyTo"]["localID"] = quotedMessage.localID;
             _MESSAGE_MODEL["replyTo"]["messageID"] = quotedMessage.messageID;
@@ -2927,10 +2933,10 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    sendTextMessageWithoutEmit : (messageBody, room, callback, quotedMessage = false, forwardMessage = false) => {
+    sendTextMessageWithoutEmit : (messageBody, room, callback, quotedMessage = false, forwardMessage = false, quoteTitle = false) => {
         if(this.taptalk.isAuthenticated()) {
             let _MESSAGE_MODEL = quotedMessage ? 
-                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "", quotedMessage)
+                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "", quotedMessage, null, quoteTitle, false, false)
                 :
                 forwardMessage ?
                     this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, forwardMessage.data !== "" ? forwardMessage.data : "", null, forwardMessage)
@@ -2957,10 +2963,10 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    sendTextMessage : (messageBody, room, callback, quotedMessage = false, forwardMessage = false, forwardOnly = false) => {
+    sendTextMessage : (messageBody, room, callback, quotedMessage = false, forwardMessage = false, forwardOnly = false, quoteTitle = false) => {
         if(this.taptalk.isAuthenticated()) {
             let _MESSAGE_MODEL = quotedMessage ? 
-                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "", quotedMessage)
+                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(messageBody, room, CHAT_MESSAGE_TYPE_TEXT, "", quotedMessage, null, quoteTitle, false, false)
                 :
                 forwardMessage ?
                     this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, forwardMessage.data !== "" ? forwardMessage.data : "", null, forwardMessage)
@@ -2991,7 +2997,7 @@ exports.tapCoreMessageManager  = {
             tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
             
             if(forwardMessage && !forwardOnly) {
-                this.tapCoreMessageManager.sendTextMessage(messageBody, room, callback)
+                this.tapCoreMessageManager.sendTextMessage(messageBody, room, callback, quotedMessage, forwardMessage, forwardOnly, quoteTitle)
             }
         }
     },
@@ -3031,7 +3037,7 @@ exports.tapCoreMessageManager  = {
         tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
     },
 
-    sendLocationMessage : (latitude, longitude, address, room, callback, quotedMessage = false, forwardOnly = false) => {
+    sendLocationMessage : (latitude, longitude, address, room, callback, quotedMessage = false, forwardOnly = false, quoteTitle = false) => {
         if(this.taptalk.isAuthenticated()) {
             let bodyValueLocation = `📍 Location`; 
 			let data =  {
@@ -3041,7 +3047,7 @@ exports.tapCoreMessageManager  = {
             }
             
             let _MESSAGE_MODEL = quotedMessage ? 
-                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValueLocation, room, CHAT_MESSAGE_TYPE_LOCATION, data, quotedMessage)
+                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValueLocation, room, CHAT_MESSAGE_TYPE_LOCATION, data, quotedMessage, null, quoteTitle, false, false)
                 :
                 forwardMessage ?
                     this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, data, null, forwardMessage)
@@ -3072,7 +3078,7 @@ exports.tapCoreMessageManager  = {
 			tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
 
             if(forwardMessage && !forwardOnly) {
-                this.tapCoreMessageManager.sendLocationMessage(latitude, longitude, address, room, callback);
+                this.tapCoreMessageManager.sendLocationMessage(latitude, longitude, address, room, callback, quotedMessage, forwardMessage, forwardOnly, quoteTitle);
             }
         }
     },
@@ -3124,7 +3130,7 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    actionSendImageMessage : (file, caption, room, callback, isSendEmit, quotedMessage, forwardMessage, fileSizeLimit, forwardOnly) => {
+    actionSendImageMessage : (file, caption, room, callback, isSendEmit, quotedMessage, forwardMessage, fileSizeLimit, forwardOnly, quoteTitle) => {
         if(fileSizeLimit && (file.size > fileSizeLimit)) {
             callback.onError('90302', "Maximum file size is "+bytesToSize(fileSizeLimit));
         }else if(file.size > projectConfigs.core.chatMediaMaxFileSize) {
@@ -3190,7 +3196,7 @@ exports.tapCoreMessageManager  = {
                     }
 
                     let _MESSAGE_MODEL = quotedMessage ? 
-                        _this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValueImage, room, CHAT_MESSAGE_TYPE_IMAGE, data, quotedMessage, currentLocalID)
+                        _this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValueImage, room, CHAT_MESSAGE_TYPE_IMAGE, data, quotedMessage, currentLocalID, quoteTitle, false, false)
                         :
                         forwardMessage ?
                             _this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, forwardMessage.data !== "" ? forwardMessage.data : "", null, forwardMessage)
@@ -3219,7 +3225,7 @@ exports.tapCoreMessageManager  = {
                         tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
 
                         if(!forwardOnly) {
-                            _this.tapCoreMessageManager.sendImageMessage(file, caption, room, callback, false, false, false);
+                            _this.tapCoreMessageManager.sendImageMessage(file, caption, room, callback, false, false, false, quoteTitle);
                         }
                     }else {
                         _message.bytesUpload = 0;
@@ -3279,15 +3285,15 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    sendImageMessage : (file, caption, room, callback, quotedMessage = false, forwardMessage = false, forwardOnly = false) => {
-        this.tapCoreMessageManager.actionSendImageMessage(file, caption, room, callback, true, quotedMessage, forwardMessage, false, forwardOnly);
+    sendImageMessage : (file, caption, room, callback, quotedMessage = false, forwardMessage = false, forwardOnly = false, quoteTitle = false) => {
+        this.tapCoreMessageManager.actionSendImageMessage(file, caption, room, callback, true, quotedMessage, forwardMessage, false, forwardOnly, quoteTitle);
     },
 
     sendImageMessageWithoutEmit : (file, caption, room, callback, quotedMessage = false, forwardMessage = false, fileSizeLimit = false) => {
         this.tapCoreMessageManager.actionSendImageMessage(file, caption, room, callback, false, quotedMessage, forwardMessage, fileSizeLimit, false);
     },
 
-    actionSendVideoMessage : (file, caption, room, callback, isSendEmit, quotedMessage, forwardMessage, fileSizeLimit, forwardOnly) => {
+    actionSendVideoMessage : (file, caption, room, callback, isSendEmit, quotedMessage, forwardMessage, fileSizeLimit, forwardOnly, quoteTitle) => {
         if(fileSizeLimit && (file.size > fileSizeLimit)) {
             callback.onError('90302', "Maximum file size is "+bytesToSize(fileSizeLimit));
         }else if(file.size > projectConfigs.core.chatMediaMaxFileSize) {
@@ -3352,7 +3358,7 @@ exports.tapCoreMessageManager  = {
 
 
                 let _MESSAGE_MODEL = quotedMessage ? 
-                    _this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValueVideo, room, CHAT_MESSAGE_TYPE_VIDEO, data, quotedMessage, currentLocalID)
+                    _this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValueVideo, room, CHAT_MESSAGE_TYPE_VIDEO, data, quotedMessage, currentLocalID, quoteTitle, false, false)
                     :
                     forwardMessage ?
                         _this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, forwardMessage.data !== "" ? forwardMessage.data : "", null, forwardMessage)
@@ -3382,7 +3388,7 @@ exports.tapCoreMessageManager  = {
                     tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
 
                     if(!forwardOnly) {
-                        _this.tapCoreMessageManager.sendVideoMessage(file, caption, room, callback, false, false, false);
+                        _this.tapCoreMessageManager.sendVideoMessage(file, caption, room, callback, false, false, false, quoteTitle);
                     }
                 }else {
                     _message.bytesUpload = 0;
@@ -3443,15 +3449,15 @@ exports.tapCoreMessageManager  = {
         }
     },
     
-    sendVideoMessage : (file, caption, room, callback, quotedMessage = false, forwardMessage = false, forwardOnly = false) => {
-        this.tapCoreMessageManager.actionSendVideoMessage(file, caption, room, callback, true, quotedMessage, forwardMessage, false, forwardOnly);
+    sendVideoMessage : (file, caption, room, callback, quotedMessage = false, forwardMessage = false, forwardOnly = false, quoteTitle = false) => {
+        this.tapCoreMessageManager.actionSendVideoMessage(file, caption, room, callback, true, quotedMessage, forwardMessage, false, forwardOnly, quoteTitle);
     },
 
     sendVideoMessageWithoutEmit : (file, caption, room, callback, quotedMessage = false, forwardMessage = false, fileSizeLimit = false) => {
         this.tapCoreMessageManager.actionSendVideoMessage(file, caption, room, callback, false, quotedMessage, forwardMessage, fileSizeLimit);
     },
 
-    actionSendFileMessage : (file, room, callback, isSendEmit, quotedMessage, forwardMessage, fileSizeLimit, forwardOnly) => {
+    actionSendFileMessage : (file, room, callback, isSendEmit, quotedMessage, forwardMessage, fileSizeLimit, forwardOnly, quoteTitle) => {
         if(fileSizeLimit && (file.size > fileSizeLimit)) {
             callback.onError('90302', "Maximum file size is "+bytesToSize(fileSizeLimit));
         }else if(file.size > projectConfigs.core.chatMediaMaxFileSize) {
@@ -3480,7 +3486,7 @@ exports.tapCoreMessageManager  = {
             }
             
             let _MESSAGE_MODEL = quotedMessage ? 
-                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValue, room, CHAT_MESSAGE_TYPE_FILE, data, quotedMessage, currentLocalID)
+                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValue, room, CHAT_MESSAGE_TYPE_FILE, data, quotedMessage, currentLocalID, quoteTitle, false, false)
                 :
                 forwardMessage ?
                     this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, forwardMessage.data !== "" ? forwardMessage.data : "", null, forwardMessage)
@@ -3509,7 +3515,7 @@ exports.tapCoreMessageManager  = {
                 tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
 
                 if(!forwardOnly) {
-                    this.tapCoreMessageManager.sendFileMessage(file, room, callback, false, false, false);
+                    this.tapCoreMessageManager.sendFileMessage(file, room, callback, false, false, false, quoteTitle);
                 }
             }else {
                 _message.bytesUpload = 0;
@@ -3565,15 +3571,15 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    sendFileMessage : (file, room, callback, quotedMessage = false, forwardMessage = false, forwardOnly = false) => {
-        this.tapCoreMessageManager.actionSendFileMessage(file, room, callback, true, quotedMessage, forwardMessage, false, forwardOnly);
+    sendFileMessage : (file, room, callback, quotedMessage = false, forwardMessage = false, forwardOnly = false, quoteTitle = false) => {
+        this.tapCoreMessageManager.actionSendFileMessage(file, room, callback, true, quotedMessage, forwardMessage, false, forwardOnly, quoteTitle);
     },
 
     sendFileMessageWithoutEmit : (file, room, callback, quotedMessage = false, forwardMessage = false, fileSizeLimit = false) => {
         this.tapCoreMessageManager.actionSendFileMessage(file, room, callback, false, quotedMessage, forwardMessage, fileSizeLimit);
     },
 
-    actionSendVoiceMessage : (file, duration, room, callback, isSendEmit, quotedMessage, forwardMessage, forwardOnly) => {
+    actionSendVoiceMessage : (file, duration, room, callback, isSendEmit, quotedMessage, forwardMessage, forwardOnly, quoteTitle) => {
         if(file.size > projectConfigs.core.chatMediaMaxFileSize) {
             callback.onError('90302', "Maximum file size is "+bytesToSize(projectConfigs.core.chatMediaMaxFileSize));
         }else {
@@ -3602,7 +3608,7 @@ exports.tapCoreMessageManager  = {
             }
             
             let _MESSAGE_MODEL = quotedMessage ? 
-                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValue, room, CHAT_MESSAGE_TYPE_VOICE, data, quotedMessage, currentLocalID)
+                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValue, room, CHAT_MESSAGE_TYPE_VOICE, data, quotedMessage, currentLocalID, quoteTitle, false, false)
                 :
                 forwardMessage ?
                     this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, forwardMessage.data !== "" ? forwardMessage.data : "", null, forwardMessage)
@@ -3631,7 +3637,7 @@ exports.tapCoreMessageManager  = {
                 tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
 
                 if(!forwardOnly) {
-                    this.tapCoreMessageManager.sendVoiceMessage(file, duration, room, callback, false, false, false);
+                    this.tapCoreMessageManager.sendVoiceMessage(file, duration, room, callback, false, false, false, quoteTitle);
                 }
             }else {
                 _message.bytesUpload = 0;
@@ -3687,8 +3693,8 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    sendVoiceMessage : (file, duration, room, callback, quotedMessage = false, forwardMessage = false) => {
-        this.tapCoreMessageManager.actionSendVoiceMessage(file, duration, room, callback, true, quotedMessage, forwardMessage);
+    sendVoiceMessage : (file, duration, room, callback, quotedMessage = false, forwardMessage = false, forwardOnly = false, quoteTitle = false) => {
+        this.tapCoreMessageManager.actionSendVoiceMessage(file, duration, room, callback, true, quotedMessage, forwardMessage, forwardOnly, quoteTitle);
     },
 
     sendVoiceMessageWithoutEmit : (file, duration, room, callback, quotedMessage = false, forwardMessage = false) => {
