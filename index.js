@@ -3032,6 +3032,18 @@ exports.tapCoreMessageManager  = {
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
         }
 
+        let actionEditStarredMessage = () => {
+            let indexMes = taptalkStarMessageHashmap[_message.room.roomID].messages.findIndex(val => val.messageID === _message.messageID);
+
+            if(indexMes !== -1) {
+                taptalkStarMessageHashmap[_message.room.roomID].messages[indexMes] = _message;
+            }
+        }
+
+        if(taptalkStarMessageHashmap[_message.room.roomID]) {
+            actionEditStarredMessage();
+        }
+
         callback(_message);
         
         tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
