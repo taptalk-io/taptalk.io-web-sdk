@@ -1,6 +1,6 @@
-/* 1-08-2022 11.00  v1.28.0 */
+/* 05-08-2022 11.15  v1.28.1 */
 // changes:
-// 1. saved message
+// 1. fixed edit message on starred message
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -3032,6 +3032,18 @@ exports.tapCoreMessageManager  = {
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
         }
 
+        let actionEditStarredMessage = () => {
+            let indexMes = taptalkStarMessageHashmap[_message.room.roomID].messages.findIndex(val => val.messageID === _message.messageID);
+
+            if(indexMes !== -1) {
+                taptalkStarMessageHashmap[_message.room.roomID].messages[indexMes] = _message;
+            }
+        }
+
+        if(taptalkStarMessageHashmap[_message.room.roomID]) {
+            actionEditStarredMessage();
+        }
+
         callback(_message);
         
         tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
@@ -4055,7 +4067,7 @@ exports.tapCoreMessageManager  = {
                 doXMLHTTPRequest('POST', authenticationHeader, url, {
                     roomID: roomID, 
                     pageNumber: !taptalkStarMessageHashmap[roomID] ? 1 : taptalkStarMessageHashmap[roomID].pageNumber, 
-                    pageSize: 50
+                    pageSize: 99999
                 })
                     .then(function (response) {
                         if(response.error.code === "") {
