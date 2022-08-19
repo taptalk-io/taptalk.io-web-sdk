@@ -25,6 +25,7 @@ var isFirstConnectedToWebSocket = false;
 var taptalkStarMessageHashmap = {};
 var taptalkUnreadMessageList = {};
 var taptalkPinnedMessageHashmap = {};
+var taptalkPinnedMessageIDHashmap = {};
 
 var db;
 // window.indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
@@ -4400,6 +4401,10 @@ exports.tapCoreMessageManager  = {
                                 let { result } = e.data;
                                 
                                 if(result.error === "") {
+                                    taptalkPinnedMessageIDHashmap[roomID] = result.messages;
+
+                                    console.log("taptalkPinnedMessageIDHashmap", taptalkPinnedMessageIDHashmap)
+                                    
                                     callback.onSuccess({
                                         roomID: roomID,
                                         messages: result.messages
@@ -4423,6 +4428,85 @@ exports.tapCoreMessageManager  = {
                     console.error('there was an error!', err);
                 });
         }
+    },
+
+    pinMessage : (roomID, messageIDs, callback) => {
+        let url = `${baseApiUrl}/v1/chat/message/pin`;
+        let _this = this;
+    
+        if(taptalkPinnedMessageHashmap[roomID]) {
+            taptalkPinnedMessageHashmap[roomID].pageNumber = 1;
+            taptalkPinnedMessageHashmap[roomID].messages = [];
+            taptalkPinnedMessageHashmap[roomID].totalItems = 0;
+            taptalkPinnedMessageHashmap[roomID].totalPages = 1;
+        }
+    
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs: messageIDs})
+                .then(function (response) {
+                    if(response.error.code === "") {
+                        callback.onSuccess(response.data);
+                    }else {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.pinMessage(roomID, messageIDs, callback);
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+    
+    unpinMessage : (roomID, messageIDs, callback) => {
+        let url = `${baseApiUrl}/v1/chat/message/unpin`;
+        let _this = this;
+    
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`; 
+    
+            let actionRemove = () => {
+                messageIDs.map(v => {
+                    let indexMes = taptalkPinnedMessageHashmap[roomID].messages.findIndex(val => val.messageID === v);
+    
+                    if(indexMes !== -1) {
+                        taptalkPinnedMessageHashmap[roomID].messages.splice(indexMes, 1);
+                    }
+                })
+            }
+    
+            if(taptalkPinnedMessageHashmap[roomID]) {
+                actionRemove();
+            }
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs})
+                .then(function (response) {
+                    if(response.error.code === "") {
+                        callback.onSuccess(response.data);
+                    }else {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.unpinMessage(roomID, messageIDs, callback);
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    getPinMessageIndexOnTaptalkPinnedMessageIDHashmap: (roomID, messageID) => {
+        let idx = -1;
+
+        if(taptalkPinnedMessageIDHashmap[roomID]) {
+            idx = Object.keys(taptalkPinnedMessageIDHashmap[roomID]).findIdex(v => v === messageID);
+        }
+
+        return idx; 
     },
 
     hideMessageInRoom: (roomID, localID) => {
