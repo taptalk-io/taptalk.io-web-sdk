@@ -4439,6 +4439,10 @@ exports.tapCoreMessageManager  = {
             taptalkPinnedMessageHashmap[roomID].messages = [];
             taptalkPinnedMessageHashmap[roomID].totalItems = 0;
             taptalkPinnedMessageHashmap[roomID].totalPages = 1;
+
+            taptalkPinnedMessageIDHashmap[roomID].concat(messageIDs);
+        }else {
+            taptalkPinnedMessageIDHashmap[roomID] = messageIDs;
         }
     
         if(this.taptalk.isAuthenticated()) {
@@ -4472,7 +4476,10 @@ exports.tapCoreMessageManager  = {
             let actionRemove = () => {
                 messageIDs.map(v => {
                     let indexMes = taptalkPinnedMessageHashmap[roomID].messages.findIndex(val => val.messageID === v);
-    
+                    let _idx = _this.tapCoreMessageManager.getPinMessageIndexOnTaptalkPinnedMessageIDHashmap(roomID, v);
+
+                    taptalkPinnedMessageIDHashmap[roomID].splice(_idx, 1);
+                    
                     if(indexMes !== -1) {
                         taptalkPinnedMessageHashmap[roomID].messages.splice(indexMes, 1);
                     }
