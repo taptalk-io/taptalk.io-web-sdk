@@ -4333,6 +4333,8 @@ exports.tapCoreMessageManager  = {
                             }
     
                             taptalkPinnedMessageHashmap[roomID].pageNumber =  !taptalkPinnedMessageHashmap[roomID].pageNumber ? (resHasMore ? 2 : 1) : (resHasMore ? (taptalkPinnedMessageHashmap[roomID].pageNumber + 1) : taptalkPinnedMessageHashmap[roomID].pageNumber);
+                            console.log("taptalkPinnedMessageHashmap", taptalkPinnedMessageHashmap);
+                            console.log("taptalkPinnedMessageIDHashmap", taptalkPinnedMessageIDHashmap);
                             callback.onSuccess(taptalkPinnedMessageHashmap[roomID]);
                         }else {
                             _this.taptalk.checkErrorResponse(response, null, () => {
@@ -4465,7 +4467,7 @@ exports.tapCoreMessageManager  = {
         }
     },
     
-    unpinMessage : (roomID, messageIDs, callback) => {
+    unpinMessage : (roomID, messageIDs, isUnpinAll, callback) => {
         let url = `${baseApiUrl}/v1/chat/message/unpin`;
         let _this = this;
     
@@ -4487,9 +4489,14 @@ exports.tapCoreMessageManager  = {
             }
     
             if(taptalkPinnedMessageHashmap[roomID]) {
-                actionRemove();
+                if(!isUnpinAll) {
+                    actionRemove();
+                }else {
+                    delete taptalkPinnedMessageHashmap[roomID];
+                    delete taptalkPinnedMessageIDHashmap[roomID];
+                }
             }
-    
+            
             doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs})
                 .then(function (response) {
                     if(response.error.code === "") {
