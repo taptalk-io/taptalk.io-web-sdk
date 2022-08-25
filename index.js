@@ -4432,19 +4432,36 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    pinMessage : (roomID, messageIDs, callback) => {
+    pinMessage : (roomID, messages, callback) => {
         let url = `${baseApiUrl}/v1/chat/message/pin`;
         let _this = this;
+        let messageIDs = [];
+        let messageIDsObject = {};
+
+        messages.map(v => {
+            messageIDs.push(v.messageID);
+            messageIDsObject[v.messageID] = true;
+
+            return null;
+        })
     
-        if(taptalkPinnedMessageHashmap[roomID]) {
+        if(!taptalkPinnedMessageHashmap[roomID]) {
+            console.log("kemari")
             taptalkPinnedMessageHashmap[roomID].pageNumber = 1;
             taptalkPinnedMessageHashmap[roomID].messages = [];
-            taptalkPinnedMessageHashmap[roomID].totalItems = 0;
+            taptalkPinnedMessageHashmap[roomID].totalItems = 1;
             taptalkPinnedMessageHashmap[roomID].totalPages = 1;
 
-            taptalkPinnedMessageIDHashmap[roomID].concat(messageIDs);
+            taptalkPinnedMessageHashmap[roomID].messages = messages;
         }else {
-            taptalkPinnedMessageIDHashmap[roomID] = messageIDs;
+            taptalkPinnedMessageHashmap[roomID].messages = messages.concat(taptalkPinnedMessageHashmap[roomID].messages);
+        }
+        
+
+        if(taptalkPinnedMessageIDHashmap[roomID]) {
+            Object.assign(taptalkPinnedMessageIDHashmap[roomID], messageIDsObject)
+        }else {
+            taptalkPinnedMessageIDHashmap[roomID] = messageIDsObject;
         }
     
         if(this.taptalk.isAuthenticated()) {
@@ -4467,9 +4484,16 @@ exports.tapCoreMessageManager  = {
         }
     },
     
-    unpinMessage : (roomID, messageIDs, isUnpinAll, callback) => {
+    unpinMessage : (roomID, messages, isUnpinAll, callback) => {
         let url = `${baseApiUrl}/v1/chat/message/unpin`;
         let _this = this;
+        let messageIDs = [];
+
+        messages.map(v => {
+            messageIDs.push(v.messageID);
+
+            return null;
+        })
     
         if(this.taptalk.isAuthenticated()) {
             let userData = getLocalStorageObject('TapTalk.UserData');
@@ -4477,10 +4501,10 @@ exports.tapCoreMessageManager  = {
     
             let actionRemove = () => {
                 messageIDs.map(v => {
+                    console.log("v", v)
                     let indexMes = taptalkPinnedMessageHashmap[roomID].messages.findIndex(val => val.messageID === v);
-                    let _idx = _this.tapCoreMessageManager.getPinMessageIndexOnTaptalkPinnedMessageIDHashmap(roomID, v);
 
-                    taptalkPinnedMessageIDHashmap[roomID].splice(_idx, 1);
+                    delete taptalkPinnedMessageIDHashmap[roomID][v];
                     
                     if(indexMes !== -1) {
                         taptalkPinnedMessageHashmap[roomID].messages.splice(indexMes, 1);
