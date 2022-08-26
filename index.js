@@ -693,6 +693,72 @@ let compressImageFile = (file, widthVal, heightVal) => {
     })
 }
 
+exports.taptalkHelper = {
+    orderArrayFromLargestToSmallest : (array, key, dir, callback) => {
+        if(window.Worker) {
+            var orderArrayFromLargestToSmallestWorker = new WebWorker(() => self.addEventListener('message', function(e) {
+                let {_array, _key, _dir, isClose} = e.data;
+
+                if(!isClose) {
+                    let sortArray = (a, k) => {
+                        var temp = 0;
+                        for (var i = 0; i < a.length; i++) {
+                          for (var j = i; j < a.length; j++) {
+                            if(_dir === "desc" ) {
+                                if (a[j][k] > a[i][k]) {
+                                  temp = a[j];
+                                  a[j] = a[i];
+                                  a[i] = temp;
+                                }
+                            }else {
+                                if (a[j][k] < a[i][k]) {
+                                    temp = a[j];
+                                    a[j] = a[i];
+                                    a[i] = temp;
+                                }
+                            }
+                          }
+                        }
+
+                        return a;
+                    }
+
+                    let resultNewArray = sortArray(_array, _key);
+                    
+                    self.postMessage({
+                        result: {
+                            newArray: resultNewArray,
+                            error: ""
+                        }
+                    })
+                }else {
+                    self.close();
+                }
+            }));
+        
+            orderArrayFromLargestToSmallestWorker.postMessage({
+                _array: array,
+                _key: key,
+                _dir: dir
+            });
+        
+            orderArrayFromLargestToSmallestWorker.addEventListener('message', (e) => {
+                let { result } = e.data;
+
+                callback(result.newArray);
+                
+                if(result.error !== "") {
+                    console.log("Room not found")
+                }
+                
+                orderArrayFromLargestToSmallestWorker.postMessage({isClose: true});
+            });
+        }else {
+            console.log("Worker is not supported");
+        }
+    }
+}
+
 exports.taptalk = {
     forTesting : () => {
         let data = {
@@ -4446,15 +4512,23 @@ exports.tapCoreMessageManager  = {
         })
     
         if(!taptalkPinnedMessageHashmap[roomID]) {
-            console.log("kemari")
             taptalkPinnedMessageHashmap[roomID].pageNumber = 1;
             taptalkPinnedMessageHashmap[roomID].messages = [];
             taptalkPinnedMessageHashmap[roomID].totalItems = 1;
             taptalkPinnedMessageHashmap[roomID].totalPages = 1;
 
             taptalkPinnedMessageHashmap[roomID].messages = messages;
+
+            callback.onSuccess(taptalkPinnedMessageHashmap[roomID]);
         }else {
             taptalkPinnedMessageHashmap[roomID].messages = messages.concat(taptalkPinnedMessageHashmap[roomID].messages);
+
+            let doOrderPinned = (new_arr) => {
+                taptalkPinnedMessageHashmap[roomID].messages = new_arr;
+                callback.onSuccess(taptalkPinnedMessageHashmap[roomID]);
+            }
+
+            this.taptalkHelper.orderArrayFromLargestToSmallest(taptalkPinnedMessageHashmap[roomID].messages, "created", "desc", doOrderPinned);
         }
         
 
@@ -4470,9 +4544,7 @@ exports.tapCoreMessageManager  = {
     
             doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs: messageIDs})
                 .then(function (response) {
-                    if(response.error.code === "") {
-                        callback.onSuccess(response.data);
-                    }else {
+                    if(response.error.code !== "") {
                         _this.taptalk.checkErrorResponse(response, null, () => {
                             _this.tapCoreMessageManager.pinMessage(roomID, messageIDs, callback);
                         });
