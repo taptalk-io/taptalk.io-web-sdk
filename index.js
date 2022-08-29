@@ -1,4 +1,4 @@
-/* 20-08-2022 11.15  v1.29.0-beta.0 */
+/* 29-08-2022 15.00  v1.29.0-beta.0 */
 // changes:
 // 1. pinned
 
@@ -564,24 +564,66 @@ var handleUpdateMessage = (message) => {
         module.exports.tapCoreRoomListManager.setRoomListLastMessage(message, 'update emit');
     }
 
-    //delete message pinned listener
     if(window.Worker) {
-        var deleteMessagePinned = new WebWorker(() => self.addEventListener('message', function(e) {
+        //delete message pinned listener
+        if(message.isDeleted) {
+            var deleteMessagePinned = new WebWorker(() => self.addEventListener('message', function(e) {
+                let {_pinnedMessage, _pinnedMessageID, _message, isClose} = e.data;
+                
+                if(!isClose) {
+                    if(_pinnedMessageID[_message.room.roomID]) {
+                        delete _pinnedMessageID[_message.room.roomID][_message.messageID];
+                    }
+    
+                    if(_pinnedMessage[_message.room.roomID]) {
+                        let _idx = _pinnedMessage[_message.room.roomID].messages.findIndex(v => v.messageID === _message.messageID);
+    
+                        if(_idx !== -1) {
+                            _pinnedMessage[_message.room.roomID].messages.splice(_idx, 1);
+                        }
+                    }
+    
+                    self.postMessage({
+                        result: {
+                            _taptalkPinnedMessageHashmap: _pinnedMessage,
+                            _taptalkPinnedMessageIDHashmap: _pinnedMessageID
+                        }
+                    })
+                }else {
+                    self.close();
+                }
+            }));
+        
+            deleteMessagePinned.postMessage({
+                _pinnedMessage: taptalkPinnedMessageHashmap,
+                _pinnedMessageID: taptalkPinnedMessageIDHashmap,
+                _message: message
+            });
+        
+            deleteMessagePinned.addEventListener('message', (e) => {
+                let { result } = e.data;
+        
+                taptalkPinnedMessageHashmap = result._taptalkPinnedMessageHashmap;
+                taptalkPinnedMessageIDHashmap = result._taptalkPinnedMessageIDHashmap;
+        
+                deleteMessagePinned.postMessage({isClose: true});
+            });
+        }
+        //delete message pinned listener
+
+        //edit message pinned listener
+        var editMessagePinned = new WebWorker(() => self.addEventListener('message', function(e) {
             let {_pinnedMessage, _pinnedMessageID, _message, isClose} = e.data;
             
             if(!isClose) {
-                if(_pinnedMessageID[_message.room.roomID]) {
-                    delete _pinnedMessageID[_message.room.roomID][_message.messageID];
-                }
-
                 if(_pinnedMessage[_message.room.roomID]) {
                     let _idx = _pinnedMessage[_message.room.roomID].messages.findIndex(v => v.messageID === _message.messageID);
-
+        
                     if(_idx !== -1) {
-                        _pinnedMessage[_message.room.roomID].messages.splice(_idx, 1);
+                        _pinnedMessage[_message.room.roomID].messages[_idx] = _message;
                     }
                 }
-
+        
                 self.postMessage({
                     result: {
                         _taptalkPinnedMessageHashmap: _pinnedMessage,
@@ -592,25 +634,25 @@ var handleUpdateMessage = (message) => {
                 self.close();
             }
         }));
-    
-        deleteMessagePinned.postMessage({
+        
+        editMessagePinned.postMessage({
             _pinnedMessage: taptalkPinnedMessageHashmap,
             _pinnedMessageID: taptalkPinnedMessageIDHashmap,
             _message: message
         });
-    
-        deleteMessagePinned.addEventListener('message', (e) => {
+        
+        editMessagePinned.addEventListener('message', (e) => {
             let { result } = e.data;
-    
+        
             taptalkPinnedMessageHashmap = result._taptalkPinnedMessageHashmap;
             taptalkPinnedMessageIDHashmap = result._taptalkPinnedMessageIDHashmap;
-    
-            deleteMessagePinned.postMessage({isClose: true});
+        
+            editMessagePinned.postMessage({isClose: true});
         });
+        //edit message pinned listener
     }else {
         console.log("Worker is not supported");
     }
-    //delete message pinned listener
 }
 
 class TapMessageQueue {
