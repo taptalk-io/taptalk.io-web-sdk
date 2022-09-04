@@ -794,7 +794,7 @@ exports.taptalkHelper = {
                         var temp = 0;
                         for (var i = 0; i < a.length; i++) {
                           for (var j = i; j < a.length; j++) {
-                            if(_dir === "desc" ) {
+                            if(_dir === "desc") {
                                 if (a[j][k] > a[i][k]) {
                                   temp = a[j];
                                   a[j] = a[i];
@@ -834,7 +834,6 @@ exports.taptalkHelper = {
         
             orderArrayFromLargestToSmallestWorker.addEventListener('message', (e) => {
                 let { result } = e.data;
-
                 callback(result.newArray);
                 
                 if(result.error !== "") {
@@ -4490,8 +4489,8 @@ exports.tapCoreMessageManager  = {
     
                             taptalkPinnedMessageHashmap[roomID].pageNumber =  !taptalkPinnedMessageHashmap[roomID].pageNumber ? (resHasMore ? 2 : 1) : (resHasMore ? (taptalkPinnedMessageHashmap[roomID].pageNumber + 1) : taptalkPinnedMessageHashmap[roomID].pageNumber);
                             
-                            _this.taptalkHelper.orderArrayFromLargestToSmallest(taptalkPinnedMessageHashmap[roomID], "created", "desc", (new_arr) => {
-                                taptalkPinnedMessageHashmap[roomID] = new_arr;
+                            _this.taptalkHelper.orderArrayFromLargestToSmallest(taptalkPinnedMessageHashmap[roomID].messages, "created", "desc", (new_arr) => {
+                                taptalkPinnedMessageHashmap[roomID].messages = new_arr;
                                 callback.onSuccess(taptalkPinnedMessageHashmap[roomID]);
                             });
                         }else {
