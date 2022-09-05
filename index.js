@@ -1,6 +1,6 @@
-/* 29-08-2022 15.00  v1.29.0-beta.0 */
+/* 05-09-2022 16.00  v1.29.0-beta.2 */
 // changes:
-// 1. pinned
+// 1. repair pin and unpin listener
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -4764,16 +4764,20 @@ exports.tapCoreMessageManager  = {
         }
     },
     
-    unpinMessage : (roomID, messages, isUnpinAll, callback) => {
+    unpinMessage : (roomID, messageIDs, isUnpinAll, callback) => {
         let url = `${baseApiUrl}/v1/chat/message/unpin`;
         let _this = this;
-        let messageIDs = [];
+        // let messageIDs = [];
 
-        messages.map(v => {
-            messageIDs.push(v.messageID);
+        // if(!isUnpinAll) {
+        //     messages.map(v => {
+        //         messageIDs.push(v.messageID);
+    
+        //         return null;
+        //     })
+        // }else {
 
-            return null;
-        })
+        // }
     
         if(this.taptalk.isAuthenticated()) {
             let userData = getLocalStorageObject('TapTalk.UserData');
