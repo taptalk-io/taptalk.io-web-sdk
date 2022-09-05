@@ -540,7 +540,7 @@ var handleNewMessage = (message) => {
     //handle pin - unpin
     if(window.Worker) {
         //new pinned
-        if(message.action === "message/pin" && taptalkPinnedMessageIDHashmap[message.room.roomID] && !taptalkPinnedMessageIDHashmap[message.room.roomID].messageID) {
+        if(message.action === "message/pin" && taptalkPinnedMessageIDHashmap[message.room.roomID] && !taptalkPinnedMessageIDHashmap[message.room.roomID][message.data.messageID]) {
             let _messagePin = {...message};
             let newMes = _messagePin.data;
             newMes.body =  decryptKey(newMes.body, newMes.localID);
@@ -594,13 +594,58 @@ var handleNewMessage = (message) => {
             });
         }
         //new pinend
+
+        //new unpinned
+        if(message.action === "message/unpin" && taptalkPinnedMessageIDHashmap[message.room.roomID] && taptalkPinnedMessageIDHashmap[message.room.roomID][message.data.messageID]) {
+            var newUnpinMessagePinned = new WebWorker(() => self.addEventListener('message', function(e) {
+                let {_pinnedMessage, _pinnedMessageID, _message, _roomID, isClose} = e.data;
+                
+                if(!isClose) {
+                    let actionRemove = () => {
+                        let indexMes = _pinnedMessage[_message.room.roomID].messages.findIndex(val => val.messageID === _message.data.messageID);
+
+                        delete _pinnedMessageID[_message.room.roomID][_message.data.messageID];
+                        
+                        if(indexMes !== -1) {
+                            _pinnedMessage[_message.room.roomID].messages.splice(indexMes, 1);
+                        }
+                    }
+            
+                    if(_pinnedMessageID[_message.room.roomID]) {
+                        actionRemove();
+                    }
+
+                    self.postMessage({
+                        result: {
+                            _taptalkPinnedMessageHashmap: _pinnedMessage,
+                            _taptalkPinnedMessageIDHashmap: _pinnedMessageID
+                        }
+                    })
+                }else {
+                    self.close();
+                }
+            }));
+        
+            newUnpinMessagePinned.postMessage({
+                _pinnedMessage: taptalkPinnedMessageHashmap,
+                _pinnedMessageID: taptalkPinnedMessageIDHashmap,
+                _message: message
+            });
+        
+            newUnpinMessagePinned.addEventListener('message', (e) => {
+                let { result } = e.data;
+                
+                taptalkPinnedMessageIDHashmap = result._taptalkPinnedMessageIDHashmap;
+                taptalkPinnedMessageHashmap = result._taptalkPinnedMessageHashmap;
+        
+                newUnpinMessagePinned.postMessage({isClose: true});
+            });
+        }
+        //new unpinned
     }else {
         console.log("Worker is not supported");
     }
     //handle pin - unpin
-
-    //new unpinned
-    //new unpinned
 }
 
 var handleUpdateMessage = (message) => {
@@ -4710,7 +4755,7 @@ exports.tapCoreMessageManager  = {
                             _this.tapCoreMessageManager.pinMessage(roomID, messageIDs, callback);
                         });
                     }else {
-                        callback();
+                        callback.onSuccess(response.data);
                     }
                 })
                 .catch(function (err) {
@@ -4734,25 +4779,30 @@ exports.tapCoreMessageManager  = {
             let userData = getLocalStorageObject('TapTalk.UserData');
             authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`; 
     
-            let actionRemove = () => {
-                messageIDs.map(v => {
-                    let indexMes = taptalkPinnedMessageHashmap[roomID].messages.findIndex(val => val.messageID === v);
+            // let actionRemove = () => {
+            //     messageIDs.map(v => {
+            //         let indexMes = taptalkPinnedMessageHashmap[roomID].messages.findIndex(val => val.messageID === v);
 
-                    delete taptalkPinnedMessageIDHashmap[roomID][v];
+            //         delete taptalkPinnedMessageIDHashmap[roomID][v];
                     
-                    if(indexMes !== -1) {
-                        taptalkPinnedMessageHashmap[roomID].messages.splice(indexMes, 1);
-                    }
-                })
-            }
+            //         if(indexMes !== -1) {
+            //             taptalkPinnedMessageHashmap[roomID].messages.splice(indexMes, 1);
+            //         }
+            //     })
+            // }
     
-            if(taptalkPinnedMessageHashmap[roomID]) {
-                if(!isUnpinAll) {
-                    actionRemove();
-                }else {
-                    delete taptalkPinnedMessageHashmap[roomID];
-                    delete taptalkPinnedMessageIDHashmap[roomID];
-                }
+            // if(taptalkPinnedMessageHashmap[roomID]) {
+            //     if(!isUnpinAll) {
+            //         actionRemove();
+            //     }else {
+            //         delete taptalkPinnedMessageHashmap[roomID];
+            //         delete taptalkPinnedMessageIDHashmap[roomID];
+            //     }
+            // }
+
+            if(isUnpinAll) {
+                delete taptalkPinnedMessageHashmap[roomID];
+                delete taptalkPinnedMessageIDHashmap[roomID];
             }
             
             doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs})
