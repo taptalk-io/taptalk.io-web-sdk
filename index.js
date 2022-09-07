@@ -1,4 +1,4 @@
-/* 07-09-2022 14.00  v1.29.0-beta.3 */
+/* 07-09-2022 14.20  v1.29.0-beta.3 */
 // changes:
 // 1. repair pin and unpin listener
 
@@ -560,6 +560,15 @@ var handleNewMessage = (message) => {
         
                     if(_pinnedMessage[_roomID]) {
                         _pinnedMessage[_roomID].messages.push(_message);
+                    }else {
+                        _pinnedMessage[_roomID] = {
+                            hasMore: false,
+                            messages: [_message],
+                            pageNumber: 1,
+                            totalItems: 1,
+                            totalPages: 1
+                        };
+                        
                     }
 
                     self.postMessage({
