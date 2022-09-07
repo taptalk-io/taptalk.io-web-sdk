@@ -1,4 +1,4 @@
-/* 05-09-2022 16.00  v1.29.0-beta.2 */
+/* 07-09-2022 14.00  v1.29.0-beta.3 */
 // changes:
 // 1. repair pin and unpin listener
 
@@ -4573,24 +4573,34 @@ exports.tapCoreMessageManager  = {
                             let newMes = [];
     
                             for(var i in response.data.messages) {
-                                if(
-                                    !taptalkPinnedMessageHashmap[roomID] || 
-                                    (taptalkPinnedMessageHashmap[roomID].messages.findIndex(v => v.messageID === response.data.messages[i].messageID) === -1)
-                                ) {
-                                    response.data.messages[i].body = decryptKey(response.data.messages[i].body, response.data.messages[i].localID);
-    
-                                    if((response.data.messages[i].data !== "")) {
-                                        var messageIndex = response.data.messages[i];
-                                        messageIndex.data = JSON.parse(decryptKey(messageIndex.data, messageIndex.localID));
-                                    }
-    
-                                    if(response.data.messages[i].quote.content !== "") {
-                                        var messageIndex = response.data.messages[i];
-                                        messageIndex.quote.content = decryptKey(messageIndex.quote.content, messageIndex.localID)
-                                    }
-    
-                                    newMes.push(response.data.messages[i]);
+                                response.data.messages[i].body = decryptKey(response.data.messages[i].body, response.data.messages[i].localID);
+                                
+                                if((response.data.messages[i].data !== "")) {
+                                    var messageIndex = response.data.messages[i];
+                                    messageIndex.data = JSON.parse(decryptKey(messageIndex.data, messageIndex.localID));
                                 }
+                                
+                                if(response.data.messages[i].quote.content !== "") {
+                                    var messageIndex = response.data.messages[i];
+                                    messageIndex.quote.content = decryptKey(messageIndex.quote.content, messageIndex.localID)
+                                }
+                                
+                                if(!taptalkPinnedMessageHashmap[roomID]) {
+                                    newMes.push(response.data.messages[i]);
+                                }else {
+                                    console.log("ga kemari? 2", response.data.messages[i])
+                                    let idxPinned = taptalkPinnedMessageHashmap[roomID].messages.findIndex(v => v.messageID === response.data.messages[i].messageID);
+                                    
+                                    if(idxPinned === -1) {
+                                        newMes.push(response.data.messages[i]);
+                                    }else {
+                                        console.log("ga kemari?", response.data.messages[i])
+                                        taptalkPinnedMessageHashmap[roomID].messages[idxPinned] = response.data.messages[i];
+                                    }
+                                }
+
+                                
+                                
                             }
     
                             response.data.messages = newMes;
