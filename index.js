@@ -1,4 +1,4 @@
-/* 07-09-2022 14.20  v1.29.0-beta.3 */
+/* 08-09-2022 14.20  v1.29.0-beta.4 */
 // changes:
 // 1. repair pin and unpin listener
 
@@ -4597,13 +4597,11 @@ exports.tapCoreMessageManager  = {
                                 if(!taptalkPinnedMessageHashmap[roomID]) {
                                     newMes.push(response.data.messages[i]);
                                 }else {
-                                    console.log("ga kemari? 2", response.data.messages[i])
                                     let idxPinned = taptalkPinnedMessageHashmap[roomID].messages.findIndex(v => v.messageID === response.data.messages[i].messageID);
                                     
                                     if(idxPinned === -1) {
                                         newMes.push(response.data.messages[i]);
                                     }else {
-                                        console.log("ga kemari?", response.data.messages[i])
                                         taptalkPinnedMessageHashmap[roomID].messages[idxPinned] = response.data.messages[i];
                                     }
                                 }
