@@ -1,4 +1,4 @@
-/* 08-09-2022 14.20  v1.29.0-beta.4 */
+/* 09-09-2022 14.20  v1.29.0-beta.5 */
 // changes:
 // 1. repair pin and unpin listener
 
@@ -4822,8 +4822,14 @@ exports.tapCoreMessageManager  = {
             // }
 
             if(isUnpinAll) {
-                delete taptalkPinnedMessageHashmap[roomID];
-                delete taptalkPinnedMessageIDHashmap[roomID];
+                taptalkPinnedMessageHashmap[roomID] = {
+                    hasMore: false,
+                    messages: [],
+                    totalItems: 0,
+                    totalPages: 1
+                };
+
+                taptalkPinnedMessageIDHashmap[roomID] = {};
             }
             
             doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs})
