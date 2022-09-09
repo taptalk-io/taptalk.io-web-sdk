@@ -1,6 +1,6 @@
-/* 05-08-2022 11.15  v1.28.1 */
+/* 09-09-2022 21.00  v1.29.0 */
 // changes:
-// 1. fixed edit message on starred message
+// 1. repair pin and unpin listener
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -24,6 +24,8 @@ var isNeedToCallApiUpdateRoomList = true;
 var isFirstConnectedToWebSocket = false;
 var taptalkStarMessageHashmap = {};
 var taptalkUnreadMessageList = {};
+var taptalkPinnedMessageHashmap = {};
+var taptalkPinnedMessageIDHashmap = {};
 
 var db;
 // window.indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
@@ -534,6 +536,125 @@ var handleNewMessage = (message) => {
 	if((message.action === 'room/leave' && message.type === 9001) && module.exports.taptalk.getTaptalkActiveUser().userID === message.user.userID) {
 		removeRoom(message.room.roomID);
 	}
+
+    //handle pin - unpin
+    if(window.Worker) {
+        //new pinned
+        if(message.action === "message/pin" && taptalkPinnedMessageIDHashmap[message.room.roomID] && !taptalkPinnedMessageIDHashmap[message.room.roomID][message.data.messageID]) {
+            let _messagePin = {...message};
+            let newMes = _messagePin.data;
+            newMes.body =  decryptKey(newMes.body, newMes.localID);
+            newMes.created = newMes.createdTime;
+
+            if(newMes.data !== "") {
+                newMes.data = decryptKey(newMes.data, newMes.localID);
+            }
+
+            var newPinMessagePinned = new WebWorker(() => self.addEventListener('message', function(e) {
+                let {_pinnedMessage, _pinnedMessageID, _message, _roomID, isClose} = e.data;
+                
+                if(!isClose) {
+                    if(_pinnedMessageID[_roomID]) {
+                        _pinnedMessageID[_roomID][_message.messageID] = true;
+                    }
+        
+                    if(_pinnedMessage[_roomID]) {
+                        _pinnedMessage[_roomID].messages.push(_message);
+                    }else {
+                        _pinnedMessage[_roomID] = {
+                            hasMore: false,
+                            messages: [_message],
+                            pageNumber: 1,
+                            totalItems: 1,
+                            totalPages: 1
+                        };
+                        
+                    }
+
+                    self.postMessage({
+                        result: {
+                            _taptalkPinnedMessageHashmap: _pinnedMessage,
+                            _taptalkPinnedMessageIDHashmap: _pinnedMessageID
+                        }
+                    })
+                }else {
+                    self.close();
+                }
+            }));
+        
+            newPinMessagePinned.postMessage({
+                _pinnedMessage: taptalkPinnedMessageHashmap,
+                _pinnedMessageID: taptalkPinnedMessageIDHashmap,
+                _message: newMes,
+                _roomID: message.room.roomID
+            });
+        
+            newPinMessagePinned.addEventListener('message', (e) => {
+                let { result } = e.data;
+                
+                taptalkPinnedMessageIDHashmap = result._taptalkPinnedMessageIDHashmap;
+                taptalkPinnedMessageHashmap = result._taptalkPinnedMessageHashmap;
+
+                module.exports.taptalkHelper.orderArrayFromLargestToSmallest(taptalkPinnedMessageHashmap[message.room.roomID].messages, "created", "desc", (new_arr) => {
+                    taptalkPinnedMessageHashmap[message.room.roomID].messages = new_arr;
+                });
+        
+                newPinMessagePinned.postMessage({isClose: true});
+            });
+        }
+        //new pinend
+
+        //new unpinned
+        if(message.action === "message/unpin" && taptalkPinnedMessageIDHashmap[message.room.roomID] && taptalkPinnedMessageIDHashmap[message.room.roomID][message.data.messageID]) {
+            var newUnpinMessagePinned = new WebWorker(() => self.addEventListener('message', function(e) {
+                let {_pinnedMessage, _pinnedMessageID, _message, _roomID, isClose} = e.data;
+                
+                if(!isClose) {
+                    let actionRemove = () => {
+                        let indexMes = _pinnedMessage[_message.room.roomID].messages.findIndex(val => val.messageID === _message.data.messageID);
+
+                        delete _pinnedMessageID[_message.room.roomID][_message.data.messageID];
+                        
+                        if(indexMes !== -1) {
+                            _pinnedMessage[_message.room.roomID].messages.splice(indexMes, 1);
+                        }
+                    }
+            
+                    if(_pinnedMessageID[_message.room.roomID]) {
+                        actionRemove();
+                    }
+
+                    self.postMessage({
+                        result: {
+                            _taptalkPinnedMessageHashmap: _pinnedMessage,
+                            _taptalkPinnedMessageIDHashmap: _pinnedMessageID
+                        }
+                    })
+                }else {
+                    self.close();
+                }
+            }));
+        
+            newUnpinMessagePinned.postMessage({
+                _pinnedMessage: taptalkPinnedMessageHashmap,
+                _pinnedMessageID: taptalkPinnedMessageIDHashmap,
+                _message: message
+            });
+        
+            newUnpinMessagePinned.addEventListener('message', (e) => {
+                let { result } = e.data;
+                
+                taptalkPinnedMessageIDHashmap = result._taptalkPinnedMessageIDHashmap;
+                taptalkPinnedMessageHashmap = result._taptalkPinnedMessageHashmap;
+        
+                newUnpinMessagePinned.postMessage({isClose: true});
+            });
+        }
+        //new unpinned
+    }else {
+        console.log("Worker is not supported");
+    }
+    //handle pin - unpin
 }
 
 var handleUpdateMessage = (message) => {
@@ -560,6 +681,96 @@ var handleUpdateMessage = (message) => {
         }
     
         module.exports.tapCoreRoomListManager.setRoomListLastMessage(message, 'update emit');
+    }
+
+    if(window.Worker) {
+        //delete message pinned listener
+        if(message.isDeleted) {
+            var deleteMessagePinned = new WebWorker(() => self.addEventListener('message', function(e) {
+                let {_pinnedMessage, _pinnedMessageID, _message, isClose} = e.data;
+                
+                if(!isClose) {
+                    if(_pinnedMessageID[_message.room.roomID]) {
+                        delete _pinnedMessageID[_message.room.roomID][_message.messageID];
+                    }
+    
+                    if(_pinnedMessage[_message.room.roomID]) {
+                        let _idx = _pinnedMessage[_message.room.roomID].messages.findIndex(v => v.messageID === _message.messageID);
+    
+                        if(_idx !== -1) {
+                            _pinnedMessage[_message.room.roomID].messages.splice(_idx, 1);
+                        }
+                    }
+    
+                    self.postMessage({
+                        result: {
+                            _taptalkPinnedMessageHashmap: _pinnedMessage,
+                            _taptalkPinnedMessageIDHashmap: _pinnedMessageID
+                        }
+                    })
+                }else {
+                    self.close();
+                }
+            }));
+        
+            deleteMessagePinned.postMessage({
+                _pinnedMessage: taptalkPinnedMessageHashmap,
+                _pinnedMessageID: taptalkPinnedMessageIDHashmap,
+                _message: message
+            });
+        
+            deleteMessagePinned.addEventListener('message', (e) => {
+                let { result } = e.data;
+        
+                taptalkPinnedMessageHashmap = result._taptalkPinnedMessageHashmap;
+                taptalkPinnedMessageIDHashmap = result._taptalkPinnedMessageIDHashmap;
+        
+                deleteMessagePinned.postMessage({isClose: true});
+            });
+        }
+        //delete message pinned listener
+
+        //edit message pinned listener
+        var editMessagePinned = new WebWorker(() => self.addEventListener('message', function(e) {
+            let {_pinnedMessage, _pinnedMessageID, _message, isClose} = e.data;
+            
+            if(!isClose) {
+                if(_pinnedMessage[_message.room.roomID]) {
+                    let _idx = _pinnedMessage[_message.room.roomID].messages.findIndex(v => v.messageID === _message.messageID);
+        
+                    if(_idx !== -1) {
+                        _pinnedMessage[_message.room.roomID].messages[_idx] = _message;
+                    }
+                }
+        
+                self.postMessage({
+                    result: {
+                        _taptalkPinnedMessageHashmap: _pinnedMessage,
+                        _taptalkPinnedMessageIDHashmap: _pinnedMessageID
+                    }
+                })
+            }else {
+                self.close();
+            }
+        }));
+        
+        editMessagePinned.postMessage({
+            _pinnedMessage: taptalkPinnedMessageHashmap,
+            _pinnedMessageID: taptalkPinnedMessageIDHashmap,
+            _message: message
+        });
+        
+        editMessagePinned.addEventListener('message', (e) => {
+            let { result } = e.data;
+        
+            taptalkPinnedMessageHashmap = result._taptalkPinnedMessageHashmap;
+            taptalkPinnedMessageIDHashmap = result._taptalkPinnedMessageIDHashmap;
+        
+            editMessagePinned.postMessage({isClose: true});
+        });
+        //edit message pinned listener
+    }else {
+        console.log("Worker is not supported");
     }
 }
 
@@ -689,6 +900,79 @@ let compressImageFile = (file, widthVal, heightVal) => {
 				});
         }
     })
+}
+
+exports.taptalkHelper = {
+    orderArrayFromLargestToSmallest : (array, key, dir, callback) => {
+        if(window.Worker) {
+            var orderArrayFromLargestToSmallestWorker = new WebWorker(() => self.addEventListener('message', function(e) {
+                let {_array, _key, _dir, isClose} = e.data;
+
+                if(!isClose) {
+                    let sortArray = (a, k) => {
+                        var temp = 0;
+                        for (var i = 0; i < a.length; i++) {
+                          for (var j = i; j < a.length; j++) {
+                            if(_dir === "desc") {
+                                if (a[j][k] > a[i][k]) {
+                                  temp = a[j];
+                                  a[j] = a[i];
+                                  a[i] = temp;
+                                }
+                            }else {
+                                if (a[j][k] < a[i][k]) {
+                                    temp = a[j];
+                                    a[j] = a[i];
+                                    a[i] = temp;
+                                }
+                            }
+                          }
+                        }
+
+                        return a;
+                    }
+
+                    let resultNewArray = sortArray(_array, _key);
+                    
+                    self.postMessage({
+                        result: {
+                            newArray: resultNewArray,
+                            error: ""
+                        }
+                    })
+                }else {
+                    self.close();
+                }
+            }));
+        
+            orderArrayFromLargestToSmallestWorker.postMessage({
+                _array: array,
+                _key: key,
+                _dir: dir
+            });
+        
+            orderArrayFromLargestToSmallestWorker.addEventListener('message', (e) => {
+                let { result } = e.data;
+                callback(result.newArray);
+                
+                if(result.error !== "") {
+                    console.log("Room not found")
+                }
+                
+                orderArrayFromLargestToSmallestWorker.postMessage({isClose: true});
+            });
+        }else {
+            console.log("Worker is not supported");
+        }
+    },
+
+    helperDecryptKey(str, key) {
+        return decryptKey(str, key);
+    },
+
+    helperEncryptKey(str, key) {
+        return encryptKey(str, key);
+    }
 }
 
 exports.taptalk = {
@@ -4268,6 +4552,310 @@ exports.tapCoreMessageManager  = {
                     console.error('there was an error!', err);
                 });
         }
+    },
+
+    fetchPinnedMessages : async (roomID, callback) => {
+        let url = `${baseApiUrl}/v1/chat/message/get_pinned_list`;
+        let _this = this;
+        // let isRunApi = false;
+    
+        // if(
+        //     (isLoadMore && (taptalkPinnedMessageHashmap[roomID] && taptalkPinnedMessageHashmap[roomID].hasMore)) || 
+        //     !taptalkPinnedMessageHashmap[roomID]
+        // ) {
+        //     isRunApi = true;
+        // }
+    
+        let runApiFetchPinnedMessage = () => {
+            if(this.taptalk.isAuthenticated()) {
+                let userData = getLocalStorageObject('TapTalk.UserData');
+                authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+                doXMLHTTPRequest('POST', authenticationHeader, url, {
+                    roomID: roomID, 
+                    pageNumber: !taptalkPinnedMessageHashmap[roomID] ? 1 : taptalkPinnedMessageHashmap[roomID].pageNumber, 
+                    pageSize: 99999
+                })
+                    .then(function (response) {
+                        if(response.error.code === "") {
+                            let resHasMore = response.data.hasMore;
+                            let newMes = [];
+    
+                            for(var i in response.data.messages) {
+                                response.data.messages[i].body = decryptKey(response.data.messages[i].body, response.data.messages[i].localID);
+                                
+                                if((response.data.messages[i].data !== "")) {
+                                    var messageIndex = response.data.messages[i];
+                                    messageIndex.data = JSON.parse(decryptKey(messageIndex.data, messageIndex.localID));
+                                }
+                                
+                                if(response.data.messages[i].quote.content !== "") {
+                                    var messageIndex = response.data.messages[i];
+                                    messageIndex.quote.content = decryptKey(messageIndex.quote.content, messageIndex.localID)
+                                }
+                                
+                                if(!taptalkPinnedMessageHashmap[roomID]) {
+                                    newMes.push(response.data.messages[i]);
+                                }else {
+                                    let idxPinned = taptalkPinnedMessageHashmap[roomID].messages.findIndex(v => v.messageID === response.data.messages[i].messageID);
+                                    
+                                    if(idxPinned === -1) {
+                                        newMes.push(response.data.messages[i]);
+                                    }else {
+                                        taptalkPinnedMessageHashmap[roomID].messages[idxPinned] = response.data.messages[i];
+                                    }
+                                }
+
+                                
+                                
+                            }
+    
+                            response.data.messages = newMes;
+    
+                            if(!taptalkPinnedMessageHashmap[roomID]) {
+                                taptalkPinnedMessageHashmap = Object.assign({[roomID] : response.data}, taptalkPinnedMessageHashmap);
+                            }else {
+                                let tempMes = taptalkPinnedMessageHashmap[roomID].messages.slice();
+                                let tempPage = taptalkPinnedMessageHashmap[roomID].pageNumber;
+                                taptalkPinnedMessageHashmap[roomID] = response.data;
+                                taptalkPinnedMessageHashmap[roomID].pageNumber = tempPage;
+                                taptalkPinnedMessageHashmap[roomID].messages = tempMes.concat(taptalkPinnedMessageHashmap[roomID].messages);
+                            }
+    
+                            taptalkPinnedMessageHashmap[roomID].pageNumber =  !taptalkPinnedMessageHashmap[roomID].pageNumber ? (resHasMore ? 2 : 1) : (resHasMore ? (taptalkPinnedMessageHashmap[roomID].pageNumber + 1) : taptalkPinnedMessageHashmap[roomID].pageNumber);
+                            
+                            _this.taptalkHelper.orderArrayFromLargestToSmallest(taptalkPinnedMessageHashmap[roomID].messages, "created", "desc", (new_arr) => {
+                                taptalkPinnedMessageHashmap[roomID].messages = new_arr;
+                                callback.onSuccess(taptalkPinnedMessageHashmap[roomID]);
+                            });
+                        }else {
+                            _this.taptalk.checkErrorResponse(response, null, () => {
+                                _this.tapCoreMessageManager.fetchPinnedMessages(roomID, callack)
+                            });
+                        }
+                    })
+                    .catch(function (err) {
+                        console.error('there was an error!', err);
+                    });
+            }
+        }
+    
+        // if(isRunApi) {
+            runApiFetchPinnedMessage();
+        // }else {
+        //     callback.onSuccess(taptalkPinnedMessageHashmap[roomID]);
+        // }
+    
+        // if(isLoadMore) {
+        //     runApiFetchPinnedMessage();
+        // }
+    },
+    
+    getPinnedMessageIds : async (roomID, callback) => {
+        let url = `${baseApiUrl}/v1/chat/message/get_pinned_ids`;
+        let _this = this;
+    
+        
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID})
+                .then(function (response) {
+                    if(response.error.code === "") {
+                        if(window.Worker) {
+                            var fetchAllPinnedMessagesWorker = new WebWorker(() => self.addEventListener('message', function(e) {
+                                let {response, isClose} = e.data;
+                                let _resultMessages = {};
+                                
+                                if(!isClose) {
+                                    response.data.pinnedMessageIDs.map(valMes => {
+                                        _resultMessages[valMes] = true;
+                        
+                                        return null;
+                                    })
+                                
+                                    self.postMessage({
+                                        result: {
+                                            messages: _resultMessages,
+                                            error: ""
+                                        }
+                                    })
+                                }else {
+                                    self.close();
+                                }
+                            }));
+                
+                            fetchAllPinnedMessagesWorker.postMessage({
+                                response: response,
+                                roomID: roomID
+                            });
+                
+                            fetchAllPinnedMessagesWorker.addEventListener('message', (e) => {
+                                let { result } = e.data;
+                                
+                                if(result.error === "") {
+                                    taptalkPinnedMessageIDHashmap[roomID] = result.messages;
+                                    
+                                    callback.onSuccess({
+                                        roomID: roomID,
+                                        messages: result.messages
+                                    })
+                                }else {
+                                    callback.onError(result.error);
+                                }
+                
+                                fetchAllPinnedMessagesWorker.postMessage({isClose: true});
+                            });
+                        }else {
+                            callback.onError("Worker is not supported");
+                        }
+                    }else {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.getPinnedMessageIds(roomID, callack)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    pinMessage : (roomID, messages, callback) => {
+        let url = `${baseApiUrl}/v1/chat/message/pin`;
+        let _this = this;
+        let messageIDs = [];
+        // let messageIDsObject = {};
+
+        messages.map(v => {
+            messageIDs.push(v.messageID);
+            // messageIDsObject[v.messageID] = true;
+
+            return null;
+        })
+
+        // if(taptalkPinnedMessageIDHashmap[roomID]) {
+        //     Object.assign(taptalkPinnedMessageIDHashmap[roomID], messageIDsObject)
+        // }else {
+        //     taptalkPinnedMessageIDHashmap[roomID] = messageIDsObject;
+        // }
+    
+        // if(!taptalkPinnedMessageHashmap[roomID]) {
+        //     taptalkPinnedMessageHashmap[roomID].pageNumber = 1;
+        //     taptalkPinnedMessageHashmap[roomID].messages = [];
+        //     taptalkPinnedMessageHashmap[roomID].totalItems = 1;
+        //     taptalkPinnedMessageHashmap[roomID].totalPages = 1;
+
+        //     taptalkPinnedMessageHashmap[roomID].messages = messages;
+
+        //     callback.onSuccess(tataptalkPinnedMessageIDHashmap[roomID], ptalkPinnedMessageHashmap[roomID]);
+        // }else {
+        //     taptalkPinnedMessageHashmap[roomID].messages = messages.concat(taptalkPinnedMessageHashmap[roomID].messages);
+
+        //     let doOrderPinned = (new_arr) => {
+        //         taptalkPinnedMessageHashmap[roomID].messages = new_arr;
+        //         callback.onSuccess(taptalkPinnedMessageIDHashmap[roomID], taptalkPinnedMessageHashmap[roomID]);
+        //     }
+
+        //     this.taptalkHelper.orderArrayFromLargestToSmallest(taptalkPinnedMessageHashmap[roomID].messages, "created", "desc", doOrderPinned);
+        // }
+        
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs: messageIDs})
+                .then(function (response) {
+                    if(response.error.code !== "") {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.pinMessage(roomID, messageIDs, callback);
+                        });
+                    }else {
+                        callback.onSuccess(response.data);
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+    
+    unpinMessage : (roomID, messageIDs, isUnpinAll, callback) => {
+        let url = `${baseApiUrl}/v1/chat/message/unpin`;
+        let _this = this;
+        // let messageIDs = [];
+
+        // if(!isUnpinAll) {
+        //     messages.map(v => {
+        //         messageIDs.push(v.messageID);
+    
+        //         return null;
+        //     })
+        // }else {
+
+        // }
+    
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`; 
+    
+            // let actionRemove = () => {
+            //     messageIDs.map(v => {
+            //         let indexMes = taptalkPinnedMessageHashmap[roomID].messages.findIndex(val => val.messageID === v);
+
+            //         delete taptalkPinnedMessageIDHashmap[roomID][v];
+                    
+            //         if(indexMes !== -1) {
+            //             taptalkPinnedMessageHashmap[roomID].messages.splice(indexMes, 1);
+            //         }
+            //     })
+            // }
+    
+            // if(taptalkPinnedMessageHashmap[roomID]) {
+            //     if(!isUnpinAll) {
+            //         actionRemove();
+            //     }else {
+            //         delete taptalkPinnedMessageHashmap[roomID];
+            //         delete taptalkPinnedMessageIDHashmap[roomID];
+            //     }
+            // }
+
+            if(isUnpinAll) {
+                taptalkPinnedMessageHashmap[roomID] = {
+                    hasMore: false,
+                    messages: [],
+                    totalItems: 0,
+                    totalPages: 1
+                };
+
+                taptalkPinnedMessageIDHashmap[roomID] = {};
+            }
+            
+            doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID, messageIDs})
+                .then(function (response) {
+                    if(response.error.code === "") {
+                        callback.onSuccess(response.data);
+                    }else {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.unpinMessage(roomID, messageIDs, callback);
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    getPinMessageIndexOnTaptalkPinnedMessageIDHashmap: (roomID, messageID) => {
+        let idx = -1;
+
+        if(taptalkPinnedMessageIDHashmap[roomID]) {
+            idx = Object.keys(taptalkPinnedMessageIDHashmap[roomID]).findIndex(v => v === messageID);
+        }
+
+        return idx; 
     },
 
     hideMessageInRoom: (roomID, localID) => {
