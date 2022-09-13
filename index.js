@@ -1,6 +1,6 @@
-/* 09-09-2022 21.00  v1.29.0 */
+/* 09-09-2022 21.00  v1.30.0-beta.0 */
 // changes:
-// 1. repair pin and unpin listener
+// 1. mute room
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -2079,7 +2079,39 @@ exports.tapCoreRoomListManager = {
 		if(tapTalkRooms[roomID]) {
 			delete tapTalkRooms[roomID];
 		}
-	}  
+	},
+
+    getMutedRooms : async (callback) => {
+        let url = `${baseApiUrl}/v1/client/room/get_muted_room_ids`;
+        let _this = this;
+    
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {})
+                .then(function (response) {
+                    if(response.error.code === "") {
+                        let _muted = {};
+
+                        response.data.mutedRooms.map((v) => {
+                            _muted[v.roomID] = v;
+                            return null;
+                        })
+
+
+                        callback.onSuccess(_muted);
+                    }else {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.getMutedRooms(roomID, callack)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
 }
 
 // const USER = this.taptalk.getTaptalkActiveUser();  
