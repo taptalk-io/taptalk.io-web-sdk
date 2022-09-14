@@ -1,6 +1,9 @@
-/* 09-09-2022 21.00  v1.29.0 */
-// changes:
-// 1. repair pin and unpin listener
+/* 14-09-2022 16.30  v1.30.0 */
+// Changes:
+// 1. Added CHAT_MESSAGE_TYPE_LINK const
+// 2. Added getUrlsFromString to taptalkHelper
+// 3. Added sendLinkMessage to tapCoreMessageManager
+// 4. Updated sendEmitWithEditedMessage to change text/link message type & data
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -199,6 +202,7 @@ const CHAT_MESSAGE_TYPE_CONTACT = 1006;
 const CHAT_MESSAGE_TYPE_STICKER = 1007;
 const CHAT_MESSAGE_TYPE_VOICE = 1008;
 const CHAT_MESSAGE_TYPE_AUDIO = 1009;
+const CHAT_MESSAGE_TYPE_LINK = 1010;
 const CHAT_MESSAGE_TYPE_PRODUCT = 2001;
 const CHAT_MESSAGE_TYPE_CATEORY = 2002;
 const CHAT_MESSAGE_TYPE_PAYMENT_CONFIRMATION = 2004;
@@ -972,6 +976,16 @@ exports.taptalkHelper = {
 
     helperEncryptKey(str, key) {
         return encryptKey(str, key);
+    },
+
+    getUrlsFromString(string) {
+        const expression = /[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?/gi;
+        const regex = new RegExp(expression);
+        const urls = string.match(regex);
+        if (urls !== null && urls !== undefined) {
+            return urls;
+        }
+        return [];
     }
 }
 
@@ -3286,6 +3300,55 @@ exports.tapCoreMessageManager  = {
         }
     },
 
+    sendLinkMessage : (messageBody, room, callback, quotedMessage = false, forwardMessage = false, forwardOnly = false, quoteTitle = false) => {
+        if(this.taptalk.isAuthenticated()) {
+            const urls = this.taptalkHelper.getUrlsFromString(messageBody);
+            if (urls.length === 0) {
+                // No url in body, send as text message
+                this.tapCoreMessageManager.sendTextMessage(messageBody, room, callback, quotedMessage, forwardMessage, forwardOnly, quoteTitle);
+                return;
+            }
+            const messageData = {
+                url: urls[0],
+                urls: urls
+            };
+            let _MESSAGE_MODEL = quotedMessage ? 
+                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(messageBody, room, CHAT_MESSAGE_TYPE_LINK, messageData, quotedMessage, null, quoteTitle, false, false)
+                :
+                forwardMessage ?
+                    this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, forwardMessage.data !== "" ? forwardMessage.data : "", null, forwardMessage)
+                    :
+                    this.tapCoreMessageManager.constructTapTalkMessageModel(messageBody, room, CHAT_MESSAGE_TYPE_LINK, messageData)
+            ;
+
+            let emitData = {
+                eventName: SOCKET_NEW_MESSAGE,
+                data: _MESSAGE_MODEL
+            };
+                    
+            let _message = JSON.parse(JSON.stringify(_MESSAGE_MODEL));
+
+            _message.body = forwardMessage ? forwardMessage.body : messageBody;
+            _message.data = forwardMessage ? (forwardMessage.data !== "" ? forwardMessage.data : "") : "";
+
+            if(quotedMessage) {
+                _message.quote.content = quotedMessage.body;
+            }
+
+            // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
+
+            this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
+
+            callback(_message);
+            
+            tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
+            
+            if(forwardMessage && !forwardOnly) {
+                this.tapCoreMessageManager.sendLinkMessage(messageBody, room, callback, quotedMessage, forwardMessage, forwardOnly, quoteTitle)
+            }
+        }
+    },
+
     sendEmitWithEditedMessage : (message, newMessage, callback) => {
         let _message = {...message};
         
@@ -3295,6 +3358,29 @@ exports.tapCoreMessageManager  = {
             _message.data.caption = newMessage;
         }else {
             _message.body = newMessage;
+        }
+
+        if (_message.type === CHAT_MESSAGE_TYPE_TEXT || _message.type === CHAT_MESSAGE_TYPE_LINK) {
+            const urls = this.taptalkHelper.getUrlsFromString(newMessage);
+            if (_message.type === CHAT_MESSAGE_TYPE_TEXT && urls.length > 0) {
+                // Change text message to link message
+                _message.type = CHAT_MESSAGE_TYPE_LINK;
+                if (_message.data !== "") {
+                    _message.data.url = urls[0];
+                    _message.data.urls = urls;
+                } else {
+                    _message.data = {
+                        url: urls[0],
+                        urls: urls
+                    };
+                }
+            }
+            else if (_message.type === CHAT_MESSAGE_TYPE_LINK && urls.length === 0) {
+                // Change link message to text message
+                _message.type = CHAT_MESSAGE_TYPE_TEXT;
+                delete _message.data["url"];
+                delete _message.data["urls"];
+            }
         }
 
         let _MESSAGE_MODEL = {..._message};
