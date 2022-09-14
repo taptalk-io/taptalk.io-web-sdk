@@ -2103,7 +2103,55 @@ exports.tapCoreRoomListManager = {
                         callback.onSuccess(_muted);
                     }else {
                         _this.taptalk.checkErrorResponse(response, null, () => {
-                            _this.tapCoreMessageManager.getMutedRooms(roomID, callack)
+                            _this.tapCoreRoomListManager.getMutedRooms(roomID, callack)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    setMutedRooms : async (roomIDs, expiredAt, callback) => {
+        let url = `${baseApiUrl}/v1/client/room/mute`;
+        let _this = this;
+    
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {roomIDs: roomIDs, expiredAt: expiredAt})
+                .then(function (response) {
+                    if(response.error.code === "") {
+                        callback.onSuccess(response);
+                    }else {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreRoomListManager.setMutedRooms(roomIDs, expiredAt, callack)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    unsetMutedRooms : async (roomIDs, callback) => {
+        let url = `${baseApiUrl}/v1/client/room/unmute`;
+        let _this = this;
+    
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {roomIDs: roomIDs})
+                .then(function (response) {
+                    if(response.error.code === "") {
+                        callback.onSuccess(response);
+                    }else {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreRoomListManager.unsetMutedRooms(roomIDs, callack)
                         });
                     }
                 })
