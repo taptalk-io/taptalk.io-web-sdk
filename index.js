@@ -9,6 +9,7 @@ var tapTalkRooms = {}; //room list with array of messages
 var tapTalkRoomListHashmap = {}; //room list last message
 var tapTalkRoomListHashmapPinned = {}; //room list last message - pinned
 var tapTalkRoomListHashmapUnPinned = {}; //room list last message - unpinned
+var tapTalkRoomListIDPinned = {}; //room list id pinned
 // var tapTalkEmitMessageQueue = {}; //room list undelivered message
 var tapRoomStatusListeners = [];
 var tapMessageListeners = [];
@@ -26,6 +27,8 @@ var taptalkStarMessageHashmap = {};
 var taptalkUnreadMessageList = {};
 var taptalkPinnedMessageHashmap = {};
 var taptalkPinnedMessageIDHashmap = {};
+
+const MAX_PINNED_ROOM = 10;
 
 var db;
 // window.indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
@@ -1848,6 +1851,8 @@ exports.tapCoreRoomListManager = {
     },
     
     getUpdatedRoomList: (callback) => {
+        console.log(tapTalkRoomListIDPinned);
+
         if(navigator.onLine) {
             if(!isDoneFirstSetupRoomList) {
                 this.tapCoreRoomListManager.getRoomListAndRead(callback)
@@ -2152,6 +2157,83 @@ exports.tapCoreRoomListManager = {
                     }else {
                         _this.taptalk.checkErrorResponse(response, null, () => {
                             _this.tapCoreRoomListManager.unsetMutedRooms(roomIDs, callack)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    getPinnedRoomID : async (callback) => {
+        let url = `${baseApiUrl}/v1/client/room/get_pinned_room_ids`;
+        let _this = this;
+    
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {})
+                .then(function (response) {
+                    if(response.error.code === "") {
+                        response.data.pinnedRoomIDs.map((v) => {
+                            tapTalkRoomListIDPinned[v] = v;
+                            return null;
+                        })
+                        
+                        callback.onSuccess(tapTalkRoomListIDPinned);
+                    }else {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreRoomListManager.getPinnedRoomID(roomIDs, callack)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    pinRoom : async (roomIDs, callback) => {
+        let url = `${baseApiUrl}/v1/client/room/pin`;
+        let _this = this;
+    
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {roomIDs: roomIDs})
+                .then(function (response) {
+                    if(response.error.code === "") {
+                        callback.onSuccess(response);
+                    }else {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreRoomListManager.pinRoom(roomIDs, callack)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    unpinRoom : async (roomIDs, callback) => {
+        let url = `${baseApiUrl}/v1/client/room/unpin`;
+        let _this = this;
+    
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {roomIDs: roomIDs})
+                .then(function (response) {
+                    if(response.error.code === "") {
+                        callback.onSuccess(response);
+                    }else {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreRoomListManager.unpinRoom(roomIDs, callack)
                         });
                     }
                 })
