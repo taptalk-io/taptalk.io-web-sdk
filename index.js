@@ -1,6 +1,6 @@
-/* 14-09-2022 17.00  v1.30.0 */
+/* 15-09-2022 11.45  v1.30.0 */
 // Changes:
-// 1. Added fetchSharedContentMessages
+// 1. Fixed fetchSharedContentMessages mapping
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -4960,46 +4960,25 @@ exports.tapCoreMessageManager  = {
                     if (response.error.code === "") {
                         const mediasResponse = response.data.media;
                         for (var i in mediasResponse) {
-                            mediasResponse[i].body = decryptKey(mediasResponse[i].body, mediasResponse[i].localID);
-
                             if (mediasResponse[i].data !== "") {
                                 var messageIndex = mediasResponse[i];
                                 messageIndex.data = JSON.parse(decryptKey(messageIndex.data, messageIndex.localID));
-                            }
-
-                            if (mediasResponse[i].quote.content !== "") {
-                                var messageIndex = mediasResponse[i];
-                                messageIndex.quote.content = decryptKey(messageIndex.quote.content, messageIndex.localID)
                             }
                         }
 
                         const filesResponse = response.data.files;
                         for (var i in filesResponse) {
-                            filesResponse[i].body = decryptKey(filesResponse[i].body, filesResponse[i].localID);
-
                             if (filesResponse[i].data !== "") {
                                 var messageIndex = filesResponse[i];
                                 messageIndex.data = JSON.parse(decryptKey(messageIndex.data, messageIndex.localID));
-                            }
-
-                            if (filesResponse[i].quote.content !== "") {
-                                var messageIndex = filesResponse[i];
-                                messageIndex.quote.content = decryptKey(messageIndex.quote.content, messageIndex.localID)
                             }
                         }
 
                         const linksResponse = response.data.links;
                         for (var i in linksResponse) {
-                            linksResponse[i].body = decryptKey(linksResponse[i].body, linksResponse[i].localID);
-
                             if (linksResponse[i].data !== "") {
                                 var messageIndex = linksResponse[i];
                                 messageIndex.data = JSON.parse(decryptKey(messageIndex.data, messageIndex.localID));
-                            }
-
-                            if (linksResponse[i].quote.content !== "") {
-                                var messageIndex = linksResponse[i];
-                                messageIndex.quote.content = decryptKey(messageIndex.quote.content, messageIndex.localID)
                             }
                         }
 
