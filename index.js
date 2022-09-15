@@ -28,7 +28,7 @@ var taptalkUnreadMessageList = {};
 var taptalkPinnedMessageHashmap = {};
 var taptalkPinnedMessageIDHashmap = {};
 
-const MAX_PINNED_ROOM = 10;
+const MAX_PINNED_ROOM = 5;
 
 var db;
 // window.indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
@@ -1497,7 +1497,7 @@ exports.tapCoreRoomListManager = {
 		return arrayMessage;
     },
     
-    setRoomListLastMessage: (message, action = null) => {
+    setRoomListLastMessage: (message, action = null, combineTapTalkRoomListHashmap = true) => {
 		var user = this.taptalk.getTaptalkActiveUser().userID;
 
 		let data = {
@@ -1588,13 +1588,16 @@ exports.tapCoreRoomListManager = {
                     //taptalk room list hashmap
 
                     //saved message
-                    if(this.taptalk.isSavedMessageRoom(message.room.roomID)) {
+                    // if(this.taptalk.isSavedMessageRoom(message.room.roomID)) {
+                    if(tapTalkRoomListIDPinned[message.room.roomID]) {
                         //pinned
                         tapTalkRoomListHashmapPinned[message.room.roomID] = data;
 
                         if(taptalkUnreadMessageList[message.room.roomID]) {
                             tapTalkRoomListHashmapPinned[message.room.roomID].isMarkAsUnread = true;
                         }
+
+                        console.log(tapTalkRoomListHashmapPinned)
                     }else {
                         //unpinned
                         tapTalkRoomListHashmapUnPinned[message.room.roomID] = data;
@@ -1792,7 +1795,9 @@ exports.tapCoreRoomListManager = {
             //update emit action
 		}
 
-        tapTalkRoomListHashmap = Object.assign({...tapTalkRoomListHashmapPinned}, {...tapTalkRoomListHashmapUnPinned});
+        if(combineTapTalkRoomListHashmap) {
+            tapTalkRoomListHashmap = Object.assign({...tapTalkRoomListHashmapPinned}, {...tapTalkRoomListHashmapUnPinned});
+        }
     },
 
     pushNewRoomToTaptalkRooms: (roomID) => {
@@ -1820,7 +1825,7 @@ exports.tapCoreRoomListManager = {
 		}
 
 		//room list action
-		this.tapCoreRoomListManager.setRoomListLastMessage(message);
+		this.tapCoreRoomListManager.setRoomListLastMessage(message, null, false);
 		//room list action
 	},
 
@@ -1846,7 +1851,7 @@ exports.tapCoreRoomListManager = {
 		}
 
         //room list action
-		this.tapCoreRoomListManager.setRoomListLastMessage(message);
+		this.tapCoreRoomListManager.setRoomListLastMessage(message, null, false);
 		//room list action
     },
     
@@ -1920,6 +1925,17 @@ exports.tapCoreRoomListManager = {
                             
                             _this.tapCoreMessageManager.markMessageAsDelivered(messageIDs);
                             
+                            let _tapTalkRoomListHashmapPinned = {};
+
+                            Object.keys(tapTalkRoomListIDPinned).map((v) => {
+                                _tapTalkRoomListHashmapPinned[v] = tapTalkRoomListHashmapPinned[v];
+                                return null;
+                            })
+
+                            console.log("_tapTalkRoomListHashmapPinned[v]_tapTalkRoomListHashmapPinned[v]", _tapTalkRoomListHashmapPinned)
+
+                            tapTalkRoomListHashmap = Object.assign({..._tapTalkRoomListHashmapPinned}, {...tapTalkRoomListHashmapUnPinned});
+
                             callback.onSuccess(tapTalkRoomListHashmap, tapTalkRooms);
 						}else {
 							_this.taptalk.checkErrorResponse(response, callback, () => {
@@ -2198,24 +2214,28 @@ exports.tapCoreRoomListManager = {
     pinRoom : async (roomIDs, callback) => {
         let url = `${baseApiUrl}/v1/client/room/pin`;
         let _this = this;
-    
-        if(this.taptalk.isAuthenticated()) {
-            let userData = getLocalStorageObject('TapTalk.UserData');
-            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
-    
-            doXMLHTTPRequest('POST', authenticationHeader, url, {roomIDs: roomIDs})
-                .then(function (response) {
-                    if(response.error.code === "") {
-                        callback.onSuccess(response);
-                    }else {
-                        _this.taptalk.checkErrorResponse(response, null, () => {
-                            _this.tapCoreRoomListManager.pinRoom(roomIDs, callack)
-                        });
-                    }
-                })
-                .catch(function (err) {
-                    console.error('there was an error!', err);
-                });
+        
+        if(Object.keys(tapTalkRoomListIDPinned).length === MAX_PINNED_ROOM) {
+            callback.onError("MAX_PINNED", "You have reached the maximum of pinned chat rooms.");
+        }else {
+            if(this.taptalk.isAuthenticated()) {
+                let userData = getLocalStorageObject('TapTalk.UserData');
+                authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+        
+                doXMLHTTPRequest('POST', authenticationHeader, url, {roomIDs: roomIDs})
+                    .then(function (response) {
+                        if(response.error.code === "") {
+                            callback.onSuccess(response);
+                        }else {
+                            _this.taptalk.checkErrorResponse(response, null, () => {
+                                _this.tapCoreRoomListManager.pinRoom(roomIDs, callack)
+                            });
+                        }
+                    })
+                    .catch(function (err) {
+                        console.error('there was an error!', err);
+                    });
+            }
         }
     },
 
