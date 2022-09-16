@@ -2225,8 +2225,23 @@ exports.tapCoreRoomListManager = {
                 doXMLHTTPRequest('POST', authenticationHeader, url, {roomIDs: roomIDs})
                     .then(function (response) {
                         if(response.error.code === "") {
-                            tapTalkRoomListIDPinned[roomIDs[0]] = roomIDs[0];
-                            callback.onSuccess(tapTalkRoomListIDPinned);
+                            let _tmpRoom = {...tapTalkRoomListHashmapUnPinned};
+
+                            roomIDs.map((v) => {
+                                tapTalkRoomListIDPinned[v] = v;
+                                tapTalkRoomListHashmapPinned = Object.assign({[v]: _tmpRoom[v]}, tapTalkRoomListHashmapPinned);
+                                delete tapTalkRoomListHashmapUnPinned[v];
+                                return null;
+                            })
+                            
+                            console.log("pinned", tapTalkRoomListHashmapPinned);
+                            console.log("unpiined", tapTalkRoomListHashmapUnPinned);
+
+                            tapTalkRoomListHashmap = Object.assign(tapTalkRoomListHashmapPinned, tapTalkRoomListHashmapUnPinned);
+                            console.log("tapTalkRoomListHashmap", tapTalkRoomListHashmap)
+
+                            console.log("tapTalkRoomListIDPinned", tapTalkRoomListIDPinned)
+                            callback.onSuccess(tapTalkRoomListIDPinned, tapTalkRoomListHashmap);
                         }else {
                             _this.taptalk.checkErrorResponse(response, null, () => {
                                 _this.tapCoreRoomListManager.pinRoom(roomIDs, callack)
@@ -2251,7 +2266,13 @@ exports.tapCoreRoomListManager = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {roomIDs: roomIDs})
                 .then(function (response) {
                     if(response.error.code === "") {
-                        delete tapTalkRoomListIDPinned[roomIDs[0]];
+
+                        roomIDs.map((v) => {
+                            delete tapTalkRoomListIDPinned[v];
+                            return null;
+                        })
+
+                        console.log("tapTalkRoomListIDPinned", tapTalkRoomListIDPinned)
                         callback.onSuccess(tapTalkRoomListIDPinned);
                     }else {
                         _this.taptalk.checkErrorResponse(response, null, () => {
