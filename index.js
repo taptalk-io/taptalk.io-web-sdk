@@ -2225,7 +2225,8 @@ exports.tapCoreRoomListManager = {
                 doXMLHTTPRequest('POST', authenticationHeader, url, {roomIDs: roomIDs})
                     .then(function (response) {
                         if(response.error.code === "") {
-                            callback.onSuccess(response);
+                            tapTalkRoomListIDPinned[roomIDs[0]] = roomIDs[0];
+                            callback.onSuccess(tapTalkRoomListIDPinned);
                         }else {
                             _this.taptalk.checkErrorResponse(response, null, () => {
                                 _this.tapCoreRoomListManager.pinRoom(roomIDs, callack)
@@ -2250,7 +2251,8 @@ exports.tapCoreRoomListManager = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {roomIDs: roomIDs})
                 .then(function (response) {
                     if(response.error.code === "") {
-                        callback.onSuccess(response);
+                        delete tapTalkRoomListIDPinned[roomIDs[0]];
+                        callback.onSuccess(tapTalkRoomListIDPinned);
                     }else {
                         _this.taptalk.checkErrorResponse(response, null, () => {
                             _this.tapCoreRoomListManager.unpinRoom(roomIDs, callack)
