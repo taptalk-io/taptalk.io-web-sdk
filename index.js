@@ -1,4 +1,4 @@
-/* 15-09-2022 11.45  v1.30.0 */
+/* 15-09-2022 11.45  v1.30.0-beta.0 */
 // Changes:
 // 1. Fixed fetchSharedContentMessages mapping
 
