@@ -1575,6 +1575,7 @@ exports.tapCoreRoomListManager = {
 		if(!message.isHidden || (message.isDeleted && message.isHidden)) {
 			//first load roomlist
 			if(action === null) {
+                console.log("action null")
 				if(!tapTalkRoomListHashmap[message.room.roomID]) { //if room list not exist
 					data.lastMessage = message;
 					data.unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
@@ -1596,8 +1597,6 @@ exports.tapCoreRoomListManager = {
                         if(taptalkUnreadMessageList[message.room.roomID]) {
                             tapTalkRoomListHashmapPinned[message.room.roomID].isMarkAsUnread = true;
                         }
-
-                        console.log(tapTalkRoomListHashmapPinned)
                     }else {
                         //unpinned
                         tapTalkRoomListHashmapUnPinned[message.room.roomID] = data;
@@ -1643,6 +1642,7 @@ exports.tapCoreRoomListManager = {
 
             //new emit action
 			if(action === 'new emit') {
+                console.log("new emit")
                 //taptalk room list hashmap
 				// if(!tapTalkRoomListHashmap[message.room.roomID]) {
                 //     data.lastMessage = message;
@@ -1707,6 +1707,7 @@ exports.tapCoreRoomListManager = {
 
 			//update emit action
 			if(action === 'update emit') {
+                console.log("action update")
                 //taptalk room list hashmap
                 // if(!tapTalkRoomListHashmap[message.room.roomID]) {
                 //     data.lastMessage = message;
@@ -1856,8 +1857,6 @@ exports.tapCoreRoomListManager = {
     },
     
     getUpdatedRoomList: (callback) => {
-        console.log(tapTalkRoomListIDPinned);
-
         if(navigator.onLine) {
             if(!isDoneFirstSetupRoomList) {
                 this.tapCoreRoomListManager.getRoomListAndRead(callback)
@@ -1931,8 +1930,6 @@ exports.tapCoreRoomListManager = {
                                 _tapTalkRoomListHashmapPinned[v] = tapTalkRoomListHashmapPinned[v];
                                 return null;
                             })
-
-                            console.log("_tapTalkRoomListHashmapPinned[v]_tapTalkRoomListHashmapPinned[v]", _tapTalkRoomListHashmapPinned)
 
                             tapTalkRoomListHashmap = Object.assign({..._tapTalkRoomListHashmapPinned}, {...tapTalkRoomListHashmapUnPinned});
 
@@ -2234,13 +2231,9 @@ exports.tapCoreRoomListManager = {
                                 return null;
                             })
                             
-                            console.log("pinned", tapTalkRoomListHashmapPinned);
-                            console.log("unpiined", tapTalkRoomListHashmapUnPinned);
-
-                            tapTalkRoomListHashmap = Object.assign(tapTalkRoomListHashmapPinned, tapTalkRoomListHashmapUnPinned);
-                            console.log("tapTalkRoomListHashmap", tapTalkRoomListHashmap)
-
-                            console.log("tapTalkRoomListIDPinned", tapTalkRoomListIDPinned)
+                            
+                            tapTalkRoomListHashmap = Object.assign({...tapTalkRoomListHashmapPinned}, {...tapTalkRoomListHashmapUnPinned});
+                            
                             callback.onSuccess(tapTalkRoomListIDPinned, tapTalkRoomListHashmap);
                         }else {
                             _this.taptalk.checkErrorResponse(response, null, () => {
@@ -2266,14 +2259,19 @@ exports.tapCoreRoomListManager = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {roomIDs: roomIDs})
                 .then(function (response) {
                     if(response.error.code === "") {
+                        let _tmpRoom = {...tapTalkRoomListHashmapPinned};
 
                         roomIDs.map((v) => {
+                            tapTalkRoomListHashmapUnPinned = Object.assign({[v]: _tmpRoom[v]}, tapTalkRoomListHashmapUnPinned);
+                            delete tapTalkRoomListHashmapPinned[v];
                             delete tapTalkRoomListIDPinned[v];
+
                             return null;
                         })
 
-                        console.log("tapTalkRoomListIDPinned", tapTalkRoomListIDPinned)
-                        callback.onSuccess(tapTalkRoomListIDPinned);
+                        tapTalkRoomListHashmap = Object.assign({...tapTalkRoomListHashmapPinned}, {...tapTalkRoomListHashmapUnPinned});
+
+                        callback.onSuccess(tapTalkRoomListIDPinned, tapTalkRoomListHashmap);
                     }else {
                         _this.taptalk.checkErrorResponse(response, null, () => {
                             _this.tapCoreRoomListManager.unpinRoom(roomIDs, callack)
@@ -4521,13 +4519,6 @@ exports.tapCoreMessageManager  = {
                                 _this.tapCoreMessageManager.markMessageAsDeleted(roomID, messages, forEveryone)
                             });
                         }
-                        // else {
-							// for(let i in messages) {
-                            //     console.log(messages[i]);
-							// 	let findIndex = tapTalkRooms[roomID].messages.findIndex(value => value.messageID === messages[i]);
-							// 	tapTalkRooms[roomID].messages[findIndex].isDeleted = true;
-							// }
-						// }
 					})
 					.catch(function (err) {
 						console.error('there was an error!', err);
@@ -4539,15 +4530,7 @@ exports.tapCoreMessageManager  = {
     fetchStarredMessages : async (roomID, callback) => {
         let url = `${baseApiUrl}/v1/chat/message/get_starred_list`;
         let _this = this;
-        // let isRunApi = false;
-
-        // if(
-        //     (isLoadMore && (taptalkStarMessageHashmap[roomID] && taptalkStarMessageHashmap[roomID].hasMore)) || 
-        //     !taptalkStarMessageHashmap[roomID]
-        // ) {
-        //     isRunApi = true;
-        // }
-
+        
         let runApiFetchStarredMessage = () => {
             if(this.taptalk.isAuthenticated()) {
                 let userData = getLocalStorageObject('TapTalk.UserData');
@@ -4610,15 +4593,7 @@ exports.tapCoreMessageManager  = {
             }
         }
 
-        // if(isRunApi) {
-            runApiFetchStarredMessage();
-        // }else {
-        //     callback.onSuccess(taptalkStarMessageHashmap[roomID]);
-        // }
-
-        // if(isLoadMore) {
-        //     runApiFetchStarredMessage();
-        // }
+        runApiFetchStarredMessage();
     },
 
     getStarredMessageIds : async (roomID, callback) => {
@@ -4762,15 +4737,7 @@ exports.tapCoreMessageManager  = {
     fetchPinnedMessages : async (roomID, callback) => {
         let url = `${baseApiUrl}/v1/chat/message/get_pinned_list`;
         let _this = this;
-        // let isRunApi = false;
-    
-        // if(
-        //     (isLoadMore && (taptalkPinnedMessageHashmap[roomID] && taptalkPinnedMessageHashmap[roomID].hasMore)) || 
-        //     !taptalkPinnedMessageHashmap[roomID]
-        // ) {
-        //     isRunApi = true;
-        // }
-    
+        
         let runApiFetchPinnedMessage = () => {
             if(this.taptalk.isAuthenticated()) {
                 let userData = getLocalStorageObject('TapTalk.UserData');
@@ -4845,15 +4812,7 @@ exports.tapCoreMessageManager  = {
             }
         }
     
-        // if(isRunApi) {
-            runApiFetchPinnedMessage();
-        // }else {
-        //     callback.onSuccess(taptalkPinnedMessageHashmap[roomID]);
-        // }
-    
-        // if(isLoadMore) {
-        //     runApiFetchPinnedMessage();
-        // }
+        runApiFetchPinnedMessage();
     },
     
     getPinnedMessageIds : async (roomID, callback) => {
@@ -4931,40 +4890,12 @@ exports.tapCoreMessageManager  = {
         let url = `${baseApiUrl}/v1/chat/message/pin`;
         let _this = this;
         let messageIDs = [];
-        // let messageIDsObject = {};
 
         messages.map(v => {
             messageIDs.push(v.messageID);
-            // messageIDsObject[v.messageID] = true;
 
             return null;
         })
-
-        // if(taptalkPinnedMessageIDHashmap[roomID]) {
-        //     Object.assign(taptalkPinnedMessageIDHashmap[roomID], messageIDsObject)
-        // }else {
-        //     taptalkPinnedMessageIDHashmap[roomID] = messageIDsObject;
-        // }
-    
-        // if(!taptalkPinnedMessageHashmap[roomID]) {
-        //     taptalkPinnedMessageHashmap[roomID].pageNumber = 1;
-        //     taptalkPinnedMessageHashmap[roomID].messages = [];
-        //     taptalkPinnedMessageHashmap[roomID].totalItems = 1;
-        //     taptalkPinnedMessageHashmap[roomID].totalPages = 1;
-
-        //     taptalkPinnedMessageHashmap[roomID].messages = messages;
-
-        //     callback.onSuccess(tataptalkPinnedMessageIDHashmap[roomID], ptalkPinnedMessageHashmap[roomID]);
-        // }else {
-        //     taptalkPinnedMessageHashmap[roomID].messages = messages.concat(taptalkPinnedMessageHashmap[roomID].messages);
-
-        //     let doOrderPinned = (new_arr) => {
-        //         taptalkPinnedMessageHashmap[roomID].messages = new_arr;
-        //         callback.onSuccess(taptalkPinnedMessageIDHashmap[roomID], taptalkPinnedMessageHashmap[roomID]);
-        //     }
-
-        //     this.taptalkHelper.orderArrayFromLargestToSmallest(taptalkPinnedMessageHashmap[roomID].messages, "created", "desc", doOrderPinned);
-        // }
         
         if(this.taptalk.isAuthenticated()) {
             let userData = getLocalStorageObject('TapTalk.UserData');
@@ -4989,42 +4920,10 @@ exports.tapCoreMessageManager  = {
     unpinMessage : (roomID, messageIDs, isUnpinAll, callback) => {
         let url = `${baseApiUrl}/v1/chat/message/unpin`;
         let _this = this;
-        // let messageIDs = [];
-
-        // if(!isUnpinAll) {
-        //     messages.map(v => {
-        //         messageIDs.push(v.messageID);
-    
-        //         return null;
-        //     })
-        // }else {
-
-        // }
     
         if(this.taptalk.isAuthenticated()) {
             let userData = getLocalStorageObject('TapTalk.UserData');
             authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`; 
-    
-            // let actionRemove = () => {
-            //     messageIDs.map(v => {
-            //         let indexMes = taptalkPinnedMessageHashmap[roomID].messages.findIndex(val => val.messageID === v);
-
-            //         delete taptalkPinnedMessageIDHashmap[roomID][v];
-                    
-            //         if(indexMes !== -1) {
-            //             taptalkPinnedMessageHashmap[roomID].messages.splice(indexMes, 1);
-            //         }
-            //     })
-            // }
-    
-            // if(taptalkPinnedMessageHashmap[roomID]) {
-            //     if(!isUnpinAll) {
-            //         actionRemove();
-            //     }else {
-            //         delete taptalkPinnedMessageHashmap[roomID];
-            //         delete taptalkPinnedMessageIDHashmap[roomID];
-            //     }
-            // }
 
             if(isUnpinAll) {
                 taptalkPinnedMessageHashmap[roomID] = {
@@ -5067,7 +4966,6 @@ exports.tapCoreMessageManager  = {
         if(this.taptalk.isAuthenticated()) {
             tapTalkRooms[roomID].messages[localID].isHidden = true;
             
-            // console.log(tapTalkRooms[roomID].messages);
             for(let key in tapTalkRooms[roomID].messages) {
                 if(!tapTalkRooms[roomID].messages[key].isHidden) {
                     return {
