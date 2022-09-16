@@ -1,6 +1,8 @@
-/* 09-09-2022 21.00  v1.30.0-beta.0 */
-// changes:
-// 1. mute room
+/* 15-09-2022 11.45  v1.30.0-beta.1 */
+// Changes:
+// 1. Fixed fetchSharedContentMessages mapping
+// 2. pin - unpin room
+// 3. mute room
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -202,6 +204,7 @@ const CHAT_MESSAGE_TYPE_CONTACT = 1006;
 const CHAT_MESSAGE_TYPE_STICKER = 1007;
 const CHAT_MESSAGE_TYPE_VOICE = 1008;
 const CHAT_MESSAGE_TYPE_AUDIO = 1009;
+const CHAT_MESSAGE_TYPE_LINK = 1010;
 const CHAT_MESSAGE_TYPE_PRODUCT = 2001;
 const CHAT_MESSAGE_TYPE_CATEORY = 2002;
 const CHAT_MESSAGE_TYPE_PAYMENT_CONFIRMATION = 2004;
@@ -975,6 +978,16 @@ exports.taptalkHelper = {
 
     helperEncryptKey(str, key) {
         return encryptKey(str, key);
+    },
+
+    getUrlsFromString(string) {
+        const expression = /[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?/gi;
+        const regex = new RegExp(expression);
+        const urls = string.match(regex);
+        if (urls !== null && urls !== undefined) {
+            return urls;
+        }
+        return [];
     }
 }
 
@@ -3489,6 +3502,55 @@ exports.tapCoreMessageManager  = {
         }
     },
 
+    sendLinkMessage : (messageBody, room, callback, quotedMessage = false, forwardMessage = false, forwardOnly = false, quoteTitle = false) => {
+        if(this.taptalk.isAuthenticated()) {
+            const urls = this.taptalkHelper.getUrlsFromString(messageBody);
+            if (urls.length === 0) {
+                // No url in body, send as text message
+                this.tapCoreMessageManager.sendTextMessage(messageBody, room, callback, quotedMessage, forwardMessage, forwardOnly, quoteTitle);
+                return;
+            }
+            const messageData = {
+                url: urls[0],
+                urls: urls
+            };
+            let _MESSAGE_MODEL = quotedMessage ? 
+                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(messageBody, room, CHAT_MESSAGE_TYPE_LINK, messageData, quotedMessage, null, quoteTitle, false, false)
+                :
+                forwardMessage ?
+                    this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, forwardMessage.data !== "" ? forwardMessage.data : "", null, forwardMessage)
+                    :
+                    this.tapCoreMessageManager.constructTapTalkMessageModel(messageBody, room, CHAT_MESSAGE_TYPE_LINK, messageData)
+            ;
+
+            let emitData = {
+                eventName: SOCKET_NEW_MESSAGE,
+                data: _MESSAGE_MODEL
+            };
+                    
+            let _message = JSON.parse(JSON.stringify(_MESSAGE_MODEL));
+
+            _message.body = forwardMessage ? forwardMessage.body : messageBody;
+            _message.data = forwardMessage ? (forwardMessage.data !== "" ? forwardMessage.data : "") : "";
+
+            if(quotedMessage) {
+                _message.quote.content = quotedMessage.body;
+            }
+
+            // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
+
+            this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
+
+            callback(_message);
+            
+            tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
+            
+            if(forwardMessage && !forwardOnly) {
+                this.tapCoreMessageManager.sendLinkMessage(messageBody, room, callback, quotedMessage, forwardMessage, forwardOnly, quoteTitle)
+            }
+        }
+    },
+
     sendEmitWithEditedMessage : (message, newMessage, callback) => {
         let _message = {...message};
         
@@ -3498,6 +3560,29 @@ exports.tapCoreMessageManager  = {
             _message.data.caption = newMessage;
         }else {
             _message.body = newMessage;
+        }
+
+        if (_message.type === CHAT_MESSAGE_TYPE_TEXT || _message.type === CHAT_MESSAGE_TYPE_LINK) {
+            const urls = this.taptalkHelper.getUrlsFromString(newMessage);
+            if (_message.type === CHAT_MESSAGE_TYPE_TEXT && urls.length > 0) {
+                // Change text message to link message
+                _message.type = CHAT_MESSAGE_TYPE_LINK;
+                if (_message.data !== "") {
+                    _message.data.url = urls[0];
+                    _message.data.urls = urls;
+                } else {
+                    _message.data = {
+                        url: urls[0],
+                        urls: urls
+                    };
+                }
+            }
+            else if (_message.type === CHAT_MESSAGE_TYPE_LINK && urls.length === 0) {
+                // Change link message to text message
+                _message.type = CHAT_MESSAGE_TYPE_TEXT;
+                delete _message.data["url"];
+                delete _message.data["urls"];
+            }
         }
 
         let _MESSAGE_MODEL = {..._message};
@@ -4583,7 +4668,7 @@ exports.tapCoreMessageManager  = {
                             callback.onSuccess(taptalkStarMessageHashmap[roomID]);
                         }else {
                             _this.taptalk.checkErrorResponse(response, null, () => {
-                                _this.tapCoreMessageManager.fetchStarredMessages(roomID, callack)
+                                _this.tapCoreMessageManager.fetchStarredMessages(roomID, callback)
                             });
                         }
                     })
@@ -4655,7 +4740,7 @@ exports.tapCoreMessageManager  = {
                         }
                     }else {
                         _this.taptalk.checkErrorResponse(response, null, () => {
-                            _this.tapCoreMessageManager.getStarredMessageIds(roomID, callack)
+                            _this.tapCoreMessageManager.getStarredMessageIds(roomID, callback)
                         });
                     }
                 })
@@ -4802,7 +4887,7 @@ exports.tapCoreMessageManager  = {
                             });
                         }else {
                             _this.taptalk.checkErrorResponse(response, null, () => {
-                                _this.tapCoreMessageManager.fetchPinnedMessages(roomID, callack)
+                                _this.tapCoreMessageManager.fetchPinnedMessages(roomID, callback)
                             });
                         }
                     })
@@ -4876,7 +4961,7 @@ exports.tapCoreMessageManager  = {
                         }
                     }else {
                         _this.taptalk.checkErrorResponse(response, null, () => {
-                            _this.tapCoreMessageManager.getPinnedMessageIds(roomID, callack)
+                            _this.tapCoreMessageManager.getPinnedMessageIds(roomID, callback)
                         });
                     }
                 })
@@ -4960,6 +5045,63 @@ exports.tapCoreMessageManager  = {
         }
 
         return idx; 
+    },
+
+    fetchSharedContentMessages : async (roomID, maxCreated, minCreated = 0, sortOrder = "DESC", callback) => {
+        let url = `${baseApiUrl}/v1/chat/room/get_shared_content`;
+        let _this = this;
+
+        let runApiFetchSharedContentMessages = () => {
+            if (this.taptalk.isAuthenticated()) {
+                let userData = getLocalStorageObject('TapTalk.UserData');
+                authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+                doXMLHTTPRequest('POST', authenticationHeader, url, {
+                    roomID: roomID, 
+                    maxCreated: maxCreated,
+                    minCreated: minCreated,
+                    sortOrder: sortOrder,
+                })
+                .then(function (response) {
+                    if (response.error.code === "") {
+                        const mediasResponse = response.data.media;
+                        for (var i in mediasResponse) {
+                            if (mediasResponse[i].data !== "") {
+                                var messageIndex = mediasResponse[i];
+                                messageIndex.data = JSON.parse(decryptKey(messageIndex.data, messageIndex.localID));
+                            }
+                        }
+
+                        const filesResponse = response.data.files;
+                        for (var i in filesResponse) {
+                            if (filesResponse[i].data !== "") {
+                                var messageIndex = filesResponse[i];
+                                messageIndex.data = JSON.parse(decryptKey(messageIndex.data, messageIndex.localID));
+                            }
+                        }
+
+                        const linksResponse = response.data.links;
+                        for (var i in linksResponse) {
+                            if (linksResponse[i].data !== "") {
+                                var messageIndex = linksResponse[i];
+                                messageIndex.data = JSON.parse(decryptKey(messageIndex.data, messageIndex.localID));
+                            }
+                        }
+
+                        callback.onSuccess(mediasResponse, filesResponse, linksResponse);
+                    } else {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.fetchSharedContentMessages(roomID, maxCreated, minCreated, sortOrder, callback)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+            }
+        }
+
+        runApiFetchSharedContentMessages();
     },
 
     hideMessageInRoom: (roomID, localID) => {
