@@ -2139,7 +2139,7 @@ exports.tapCoreRoomListManager = {
                                 return null;
                             })
                             
-                            tapTalkRoomListHashmap = Object.assign({...tapTalkRoomListHashmapPinned}, {...tapTalkRoomListHashmapUnPinned});
+                            tapTalkRoomListHashmap = Object.assign({...tapTalkRoomListHashmapPinned}, {..._this.tapCoreRoomListManager.reorderTapTalkRoomListUnpinned()});
                             
                             callback.onSuccess(tapTalkRoomListIDPinned, tapTalkRoomListHashmap);
                         }else {
@@ -2176,8 +2176,8 @@ exports.tapCoreRoomListManager = {
                             return null;
                         })
 
-                        tapTalkRoomListHashmap = Object.assign({...tapTalkRoomListHashmapPinned}, {...tapTalkRoomListHashmapUnPinned});
-
+                        tapTalkRoomListHashmap = Object.assign({...tapTalkRoomListHashmapPinned}, {..._this.tapCoreRoomListManager.reorderTapTalkRoomListUnpinned()});
+                        
                         callback.onSuccess(tapTalkRoomListIDPinned, tapTalkRoomListHashmap);
                     }else {
                         _this.taptalk.checkErrorResponse(response, null, () => {
@@ -2190,6 +2190,15 @@ exports.tapCoreRoomListManager = {
                 });
         }
     },
+
+    reorderTapTalkRoomListUnpinned : () => {
+        let _tapTalkRoomListHashmapUnPinned = {...tapTalkRoomListHashmapUnPinned};
+        let sortable = Object.fromEntries(
+            Object.entries(_tapTalkRoomListHashmapUnPinned ).sort(([,a],[,b]) => b["lastMessage"]["created"] - a["lastMessage"]["created"])
+        );
+
+        return sortable;
+    }
 }
 
 // const USER = this.taptalk.getTaptalkActiveUser();  
