@@ -1567,7 +1567,6 @@ exports.tapCoreRoomListManager = {
 		if(!message.isHidden || (message.isDeleted && message.isHidden)) {
 			//first load roomlist
 			if(action === null) {
-                console.log("action null")
 				if(!tapTalkRoomListHashmap[message.room.roomID]) { //if room list not exist
 					data.lastMessage = message;
 					data.unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
@@ -1618,14 +1617,11 @@ exports.tapCoreRoomListManager = {
 
             //new emit action
 			if(action === 'new emit') {
-                console.log("new emit", tapTalkRoomListHashmapPinned)
                 //saved message & pinnned room
                 if(tapTalkRoomListHashmapPinned[message.room.roomID]) {
-                    console.log("atas");
                     tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage = message;
                     tapTalkRoomListHashmapPinned[message.room.roomID].unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
                 }else {
-                    console.log("bawah");
                     unreadCounter();
                     let temporaryRoomList = tapTalkRoomListHashmapUnPinned[message.room.roomID];
                     
@@ -1643,7 +1639,6 @@ exports.tapCoreRoomListManager = {
 
 			//update emit action
 			if(action === 'update emit') {
-                console.log("action update", message)
                 //saved message & pinnned room
                 // if(this.taptalk.isSavedMessageRoom(message.room.roomID)) {
                 //     if(!tapTalkRoomListHashmapPinned[message.room.roomID]) {
@@ -1688,7 +1683,6 @@ exports.tapCoreRoomListManager = {
                 //     }
                 // }else {
                     if(tapTalkRoomListHashmapPinned[message.room.roomID]) {
-                        console.log("atas update");
                         tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage = message;
                         tapTalkRoomListHashmapPinned[message.room.roomID].unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
                     }else {
@@ -1708,10 +1702,9 @@ exports.tapCoreRoomListManager = {
                 //saved message & pinnned room
 			}
             //update emit action
-		}
+        }
 
-        if(combineTapTalkRoomListHashmap) {
-            console.log("kesini kan")
+        if(combineTapTalkRoomListHashmap && !tapTalkRoomListHashmapPinned[message.room.roomID]) {
             tapTalkRoomListHashmap = Object.assign({...tapTalkRoomListHashmapPinned}, {...tapTalkRoomListHashmapUnPinned});
         }
     },
@@ -1725,7 +1718,6 @@ exports.tapCoreRoomListManager = {
     },
 
     updateRoomsExist: (message) => {
-        console.log("update room exist")
         let decryptedMessage = decryptKey(message.body, message.localID);
         // let decryptedMessage = message.body;
 
@@ -1747,7 +1739,6 @@ exports.tapCoreRoomListManager = {
 	},
 
 	updateRoomsNotExist: (message) => {
-        console.log("update room not exist")
 		let decryptedMessage = decryptKey(message.body, message.localID);
 
 		tapTalkRooms[message.room.roomID] = {};
@@ -1847,7 +1838,7 @@ exports.tapCoreRoomListManager = {
                                 _tapTalkRoomListHashmapPinned[v] = tapTalkRoomListHashmapPinned[v];
                                 return null;
                             })
-
+                            
                             tapTalkRoomListHashmap = Object.assign({..._tapTalkRoomListHashmapPinned}, {...tapTalkRoomListHashmapUnPinned});
 
                             callback.onSuccess(tapTalkRoomListHashmap, tapTalkRooms);
@@ -3142,8 +3133,8 @@ exports.tapCoreMessageManager  = {
         newRoomListHashmap.lastMessage = messageModel;
 		newRoomListHashmap.unreadCount = (!messageModel.isRead && user !== messageModel.user.userID) ? 1 : 0;
 
-		// tapTalkRoomListHashmap = Object.assign({[messageModel.room.roomID] : newRoomListHashmap}, tapTalkRoomListHashmap);
-
+        // tapTalkRoomListHashmap = Object.assign({[messageModel.room.roomID] : newRoomListHashmap}, tapTalkRoomListHashmap);
+        
         //saved message
         if(this.taptalk.isSavedMessageRoom(messageModel.room.roomID)) {
             tapTalkRoomListHashmapPinned = Object.assign({[messageModel.room.roomID] : newRoomListHashmap}, tapTalkRoomListHashmapPinned);
@@ -3183,31 +3174,14 @@ exports.tapCoreMessageManager  = {
     pushNewMessageToRoomsAndChangeLastMessage : (message) => {
         let _message = {...message};
 
-        // if(tapTalkRooms[_message.room.roomID]) {
-        //     if(tapTalkRoomListHashmap[_message.room.roomID]) {
-        //         tapTalkRoomListHashmap[_message.room.roomID].lastMessage = _message;
-        //         tapTalkRoomListHashmap = Object.assign({[_message.room.roomID]: tapTalkRoomListHashmap[_message.room.roomID]}, tapTalkRoomListHashmap);
-        //     }else {
-        //         this.tapCoreRoomListManager.setRoomListLastMessage(_message, "new emit")
-        //     }
-
-        //     tapTalkRooms[_message.room.roomID].messages = Object.assign({[_message.localID]: _message}, tapTalkRooms[_message.room.roomID].messages);
-        // }else {
-        //     this.tapCoreMessageManager.pushNewRoom(_message);
-        // }
-
-        //saved message
         if(tapTalkRooms[_message.room.roomID]) {
             if(tapTalkRoomListHashmapPinned[_message.room.roomID]) {
-                console.log("abc")
                 tapTalkRoomListHashmapPinned[_message.room.roomID].lastMessage = _message;
                 // tapTalkRoomListHashmapPinned = Object.assign({[_message.room.roomID]: tapTalkRoomListHashmapPinned[_message.room.roomID]}, tapTalkRoomListHashmapPinned);
             }else if(tapTalkRoomListHashmapUnPinned[_message.room.roomID]) {
-                console.log("def")
                 tapTalkRoomListHashmapUnPinned[_message.room.roomID].lastMessage = _message;
                 tapTalkRoomListHashmapUnPinned = Object.assign({[_message.room.roomID]: tapTalkRoomListHashmapUnPinned[_message.room.roomID]}, tapTalkRoomListHashmapUnPinned);
             }else {
-                console.log("ghi")
                 this.tapCoreRoomListManager.setRoomListLastMessage(_message, "new emit")
             }
 
@@ -3215,7 +3189,6 @@ exports.tapCoreMessageManager  = {
         }else {
             this.tapCoreMessageManager.pushNewRoom(_message);
         }
-        // saved message
     },
 
     sendCustomMessage : (messageModel, callback) => {
@@ -3224,9 +3197,7 @@ exports.tapCoreMessageManager  = {
                 eventName: SOCKET_NEW_MESSAGE,
                 data: JSON.parse(JSON.stringify(messageModel))
             };
-                    
-            // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
-
+            
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(messageModel);
 
             callback(messageModel);
@@ -3254,7 +3225,6 @@ exports.tapCoreMessageManager  = {
 
             _message.body = forwardMessage.body;
             _message.data = forwardMessage ? (forwardMessage.data !== "" ? forwardMessage.data : "") : "";
-            // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
 
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
             
@@ -3277,7 +3247,6 @@ exports.tapCoreMessageManager  = {
 
             _message.body = forwardMessage ? forwardMessage.body : messageBody;
             _message.data = forwardMessage ? (forwardMessage.data !== "" ? forwardMessage.data : "") : "";
-            // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
             
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
 
@@ -3301,7 +3270,6 @@ exports.tapCoreMessageManager  = {
     
                 _message.body = forwardMessage ? forwardMessage.body : messageBody;
                 _message.data = forwardMessage ? (forwardMessage.data !== "" ? forwardMessage.data : "") : "";
-                // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
     
                 this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
     
@@ -3327,7 +3295,6 @@ exports.tapCoreMessageManager  = {
         
                     _message.body = forwardMessage ? forwardMessage.body : messageBody;
                     _message.data = forwardMessage ? (forwardMessage.data !== "" ? forwardMessage.data : "") : "";
-                    // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
         
                     this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
         
@@ -3394,9 +3361,7 @@ exports.tapCoreMessageManager  = {
                 _message.quote.content = quotedMessage.body;
             }
 
-            // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
-
-            // this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
+            this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
 
             callback(_message);
             
@@ -3442,8 +3407,6 @@ exports.tapCoreMessageManager  = {
             if(quotedMessage) {
                 _message.quote.content = quotedMessage.body;
             }
-
-            // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
 
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
 
@@ -3560,7 +3523,6 @@ exports.tapCoreMessageManager  = {
                 _message.quote.content = quotedMessage.body;
             }
 
-            // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_message);
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
 			
 			callback(_message);
@@ -4037,8 +3999,6 @@ exports.tapCoreMessageManager  = {
                                 if(quotedMessage) {
                                     _messageClone.quote.content = encryptKey(quotedMessage.body, _messageClone.localID);
                                 }
-    
-                                // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_messageClone);
                                 
                                 let emitData = {
                                     eventName: SOCKET_NEW_MESSAGE,
@@ -4159,8 +4119,6 @@ exports.tapCoreMessageManager  = {
                                 if(quotedMessage) {
                                     _messageClone.quote.content = encryptKey(quotedMessage.body, _messageClone.localID);
                                 }
-    
-                                // this.tapCoreMessageManager.pushToTapTalkEmitMessageQueue(_messageClone);
                                 
                                 let emitData = {
                                     eventName: SOCKET_NEW_MESSAGE,
