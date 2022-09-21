@@ -1,6 +1,6 @@
-/* 19-09-2022 23:35  v1.30.0-beta.2 */
+/* 21-09-2022 23:00  v1.30.0-beta.3 */
 // Changes:
-// 1. fix unread counter
+// 1. fix unread counter, pin unpin
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -28,7 +28,7 @@ var taptalkUnreadMessageList = {};
 var taptalkPinnedMessageHashmap = {};
 var taptalkPinnedMessageIDHashmap = {};
 
-const MAX_PINNED_ROOM = 5;
+const MAX_PINNED_ROOM = 10;
 
 var db;
 // window.indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
@@ -2108,7 +2108,7 @@ exports.tapCoreRoomListManager = {
         let url = `${baseApiUrl}/v1/client/room/pin`;
         let _this = this;
         
-        if(Object.keys(tapTalkRoomListIDPinned).length === MAX_PINNED_ROOM) {
+        if(Object.keys(tapTalkRoomListIDPinned).length >= MAX_PINNED_ROOM) {
             callback.onError("MAX_PINNED", "You have reached the maximum of pinned chat rooms.");
         }else {
             if(this.taptalk.isAuthenticated()) {
