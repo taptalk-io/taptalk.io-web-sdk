@@ -1,6 +1,6 @@
-/* 21-09-2022 23:00  v1.30.0-beta.3 */
+/* 21-09-2022 23:00  v1.30.0-beta.4 */
 // Changes:
-// 1. fix unread counter, pin unpin
+// 1. fix pin unpin
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -1630,15 +1630,8 @@ exports.tapCoreRoomListManager = {
                     }
                 }else {
                     if(tapTalkRoomListIDPinned[message.room.roomID]) {
-                        unreadCounter();
-                        let temporaryRoomList = tapTalkRoomListHashmapPinned[message.room.roomID];
-                        if((temporaryRoomList.lastMessage.created !== message.created)) {
-                            temporaryRoomList.lastMessage = message;
-                        }
-        
-                        delete tapTalkRoomListHashmapPinned[message.room.roomID];
-        
-                        tapTalkRoomListHashmapPinned = Object.assign({[message.room.roomID] : temporaryRoomList}, tapTalkRoomListHashmapPinned);
+                        // unreadCounter();
+                        tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage = message;
                     }else {
                         unreadCounter();
                         let temporaryRoomList = tapTalkRoomListHashmapUnPinned[message.room.roomID];
@@ -1693,7 +1686,16 @@ exports.tapCoreRoomListManager = {
 
         // if(combineTapTalkRoomListHashmap && !tapTalkRoomListHashmapPinned[message.room.roomID]) {
         if(combineTapTalkRoomListHashmap) {
-            tapTalkRoomListHashmap = Object.assign({...tapTalkRoomListHashmapPinned}, {...tapTalkRoomListHashmapUnPinned});
+            let _tapTalkRoomListHashmapPinned = {};
+
+            Object.keys(tapTalkRoomListIDPinned).map((v) => {
+                _tapTalkRoomListHashmapPinned[v] = tapTalkRoomListHashmapPinned[v];
+                return null;
+            })
+
+           
+            // tapTalkRoomListHashmapPinned = _tapTalkRoomListHashmapPinned;
+            tapTalkRoomListHashmap = Object.assign({..._tapTalkRoomListHashmapPinned}, {...tapTalkRoomListHashmapUnPinned});
         }
     },
 
