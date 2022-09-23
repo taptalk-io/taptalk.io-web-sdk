@@ -1630,7 +1630,7 @@ exports.tapCoreRoomListManager = {
                     }
                 }else {
                     if(tapTalkRoomListIDPinned[message.room.roomID]) {
-                        // unreadCounter();
+                        unreadCounter();
                         tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage = message;
                     }else {
                         unreadCounter();
