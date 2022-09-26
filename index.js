@@ -1,4 +1,4 @@
-/* 23-09-2022 23:00  v1.30.0-beta.5 */
+/* 23-09-2022 23:00  v1.30.0-beta.7 */
 // Changes:
 // 1. fix pin unpin
 
@@ -1693,7 +1693,6 @@ exports.tapCoreRoomListManager = {
                 return null;
             })
 
-           
             // tapTalkRoomListHashmapPinned = _tapTalkRoomListHashmapPinned;
             tapTalkRoomListHashmap = Object.assign({..._tapTalkRoomListHashmapPinned}, {...tapTalkRoomListHashmapUnPinned});
         }
@@ -2121,16 +2120,27 @@ exports.tapCoreRoomListManager = {
                     .then(function (response) {
                         if(response.error.code === "") {
                             let _tmpRoom = {...tapTalkRoomListHashmapUnPinned};
+                            let newRoomID = {};
 
                             roomIDs.map((v) => {
+                                newRoomID[v] = v;
                                 tapTalkRoomListIDPinned[v] = v;
                                 tapTalkRoomListHashmapPinned = Object.assign({[v]: _tmpRoom[v]}, tapTalkRoomListHashmapPinned);
                                 delete tapTalkRoomListHashmapUnPinned[v];
                                 return null;
                             })
                             
-                            tapTalkRoomListHashmap = Object.assign({...tapTalkRoomListHashmapPinned}, {..._this.tapCoreRoomListManager.reorderTapTalkRoomListUnpinned()});
+                            tapTalkRoomListIDPinned = Object.assign({...newRoomID}, {...tapTalkRoomListIDPinned});
+
+                            let _tapTalkRoomListHashmapPinned = {};
+
+                            Object.keys(tapTalkRoomListIDPinned).map((v) => {
+                                _tapTalkRoomListHashmapPinned[v] = tapTalkRoomListHashmapPinned[v];
+                                return null;
+                            })
                             
+                            tapTalkRoomListHashmap = Object.assign({..._tapTalkRoomListHashmapPinned}, {..._this.tapCoreRoomListManager.reorderTapTalkRoomListUnpinned()});
+
                             callback.onSuccess(tapTalkRoomListIDPinned, tapTalkRoomListHashmap);
                         }else {
                             _this.taptalk.checkErrorResponse(response, null, () => {
