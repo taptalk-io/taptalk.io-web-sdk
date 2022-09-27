@@ -1,4 +1,4 @@
-/* 23-09-2022 23:00  v1.30.0-beta.7 */
+/* 23-09-2022 23:00  v1.30.0-beta.8 */
 // Changes:
 // 1. fix pin unpin
 
@@ -2108,6 +2108,30 @@ exports.tapCoreRoomListManager = {
     pinRoom : async (roomIDs, callback) => {
         let url = `${baseApiUrl}/v1/client/room/pin`;
         let _this = this;
+
+        let _tmpRoom = {...tapTalkRoomListHashmapUnPinned};
+        let newRoomID = {};
+
+        roomIDs.map((v) => {
+            newRoomID[v] = v;
+            tapTalkRoomListIDPinned[v] = v;
+            tapTalkRoomListHashmapPinned = Object.assign({[v]: _tmpRoom[v]}, tapTalkRoomListHashmapPinned);
+            delete tapTalkRoomListHashmapUnPinned[v];
+            return null;
+        })
+        
+        tapTalkRoomListIDPinned = Object.assign({...newRoomID}, {...tapTalkRoomListIDPinned});
+
+        let _tapTalkRoomListHashmapPinned = {};
+
+        Object.keys(tapTalkRoomListIDPinned).map((v) => {
+            _tapTalkRoomListHashmapPinned[v] = tapTalkRoomListHashmapPinned[v];
+            return null;
+        })
+        
+        tapTalkRoomListHashmap = Object.assign({..._tapTalkRoomListHashmapPinned}, {..._this.tapCoreRoomListManager.reorderTapTalkRoomListUnpinned()});
+
+        callback.onSuccess(tapTalkRoomListIDPinned, tapTalkRoomListHashmap);
         
         if(Object.keys(tapTalkRoomListIDPinned).length >= MAX_PINNED_ROOM) {
             callback.onError("MAX_PINNED", "You have reached the maximum of pinned chat rooms.");
@@ -2119,29 +2143,7 @@ exports.tapCoreRoomListManager = {
                 doXMLHTTPRequest('POST', authenticationHeader, url, {roomIDs: roomIDs})
                     .then(function (response) {
                         if(response.error.code === "") {
-                            let _tmpRoom = {...tapTalkRoomListHashmapUnPinned};
-                            let newRoomID = {};
-
-                            roomIDs.map((v) => {
-                                newRoomID[v] = v;
-                                tapTalkRoomListIDPinned[v] = v;
-                                tapTalkRoomListHashmapPinned = Object.assign({[v]: _tmpRoom[v]}, tapTalkRoomListHashmapPinned);
-                                delete tapTalkRoomListHashmapUnPinned[v];
-                                return null;
-                            })
-                            
-                            tapTalkRoomListIDPinned = Object.assign({...newRoomID}, {...tapTalkRoomListIDPinned});
-
-                            let _tapTalkRoomListHashmapPinned = {};
-
-                            Object.keys(tapTalkRoomListIDPinned).map((v) => {
-                                _tapTalkRoomListHashmapPinned[v] = tapTalkRoomListHashmapPinned[v];
-                                return null;
-                            })
-                            
-                            tapTalkRoomListHashmap = Object.assign({..._tapTalkRoomListHashmapPinned}, {..._this.tapCoreRoomListManager.reorderTapTalkRoomListUnpinned()});
-
-                            callback.onSuccess(tapTalkRoomListIDPinned, tapTalkRoomListHashmap);
+                           
                         }else {
                             _this.taptalk.checkErrorResponse(response, null, () => {
                                 _this.tapCoreRoomListManager.pinRoom(roomIDs, callack)
@@ -2158,6 +2160,31 @@ exports.tapCoreRoomListManager = {
     unpinRoom : async (roomIDs, callback) => {
         let url = `${baseApiUrl}/v1/client/room/unpin`;
         let _this = this;
+
+        let _tmpRoom = {...tapTalkRoomListHashmapPinned};
+        let newRoomID = {};
+
+        roomIDs.map((v) => {
+            tapTalkRoomListHashmapUnPinned = Object.assign({[v]: _tmpRoom[v]}, tapTalkRoomListHashmapUnPinned);
+            delete tapTalkRoomListHashmapPinned[v];
+            delete tapTalkRoomListIDPinned[v];
+
+            return null;
+        })
+
+        tapTalkRoomListIDPinned = Object.assign({...newRoomID}, {...tapTalkRoomListIDPinned});
+
+        let _tapTalkRoomListHashmapPinned = {};
+
+        Object.keys(tapTalkRoomListIDPinned).map((v) => {
+            _tapTalkRoomListHashmapPinned[v] = tapTalkRoomListHashmapPinned[v];
+            return null;
+        })
+        
+        tapTalkRoomListHashmapUnPinned = {..._this.tapCoreRoomListManager.reorderTapTalkRoomListUnpinned()};
+        tapTalkRoomListHashmap = Object.assign({..._tapTalkRoomListHashmapPinned}, {...tapTalkRoomListHashmapUnPinned});
+        
+        callback.onSuccess(tapTalkRoomListIDPinned, tapTalkRoomListHashmap);
     
         if(this.taptalk.isAuthenticated()) {
             let userData = getLocalStorageObject('TapTalk.UserData');
@@ -2166,19 +2193,7 @@ exports.tapCoreRoomListManager = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {roomIDs: roomIDs})
                 .then(function (response) {
                     if(response.error.code === "") {
-                        let _tmpRoom = {...tapTalkRoomListHashmapPinned};
-
-                        roomIDs.map((v) => {
-                            tapTalkRoomListHashmapUnPinned = Object.assign({[v]: _tmpRoom[v]}, tapTalkRoomListHashmapUnPinned);
-                            delete tapTalkRoomListHashmapPinned[v];
-                            delete tapTalkRoomListIDPinned[v];
-
-                            return null;
-                        })
-
-                        tapTalkRoomListHashmap = Object.assign({...tapTalkRoomListHashmapPinned}, {..._this.tapCoreRoomListManager.reorderTapTalkRoomListUnpinned()});
                         
-                        callback.onSuccess(tapTalkRoomListIDPinned, tapTalkRoomListHashmap);
                     }else {
                         _this.taptalk.checkErrorResponse(response, null, () => {
                             _this.tapCoreRoomListManager.unpinRoom(roomIDs, callack)
@@ -2196,7 +2211,7 @@ exports.tapCoreRoomListManager = {
         let sortable = Object.fromEntries(
             Object.entries(_tapTalkRoomListHashmapUnPinned ).sort(([,a],[,b]) => b["lastMessage"]["created"] - a["lastMessage"]["created"])
         );
-
+        
         return sortable;
     }
 }
