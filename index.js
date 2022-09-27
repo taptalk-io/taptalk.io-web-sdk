@@ -1,6 +1,8 @@
-/* 23-09-2022 23:00  v1.30.0-beta.8 */
+/* 27-09-2022 21:00  v1.30.0 */
 // Changes:
-// 1. fix pin unpin
+// 1. shared media
+// 2. pin - unpin
+// 3. mute - unmute
 
 var define, CryptoJS;
 var crypto = require('crypto');
