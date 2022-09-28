@@ -1,8 +1,11 @@
-/* 27-09-2022 21:00  v1.30.0 */
+/* 28-09-2022 16:00  v1.31.0-beta.0 */
 // Changes:
-// 1. shared media
-// 2. pin - unpin
-// 3. mute - unmute
+// 1. Updated sendLinkMessage function & parameters
+// 2. Updated sendEmitWithEditedMessage to not change message type
+// 3. Added sendEmitWithEditedMessageModel method to tapCoreMessageManager
+// 4. Generated quote image from link preview data
+// 5. Fixed message data not encrypted when editing message
+// 6. Updated getUrlsFromString regex
 
 var define, CryptoJS;
 var crypto = require('crypto');
