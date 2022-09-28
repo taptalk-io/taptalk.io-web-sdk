@@ -3466,9 +3466,10 @@ exports.tapCoreMessageManager  = {
         
         _message.isMessageEdited = true;
 
-        if((_message.data !== "") && (typeof _message.data.caption !== "undefined")) {
+        if ((_message.data !== "") && (typeof _message.data.caption !== "undefined")) {
             _message.data.caption = newMessage;
-        }else {
+        }
+        else {
             _message.body = newMessage;
         }
 
@@ -3478,14 +3479,15 @@ exports.tapCoreMessageManager  = {
     sendEmitWithEditedMessageModel : (editedMessage, callback) => {
         let _MESSAGE_MODEL = {...editedMessage};
 
-        if (editedMessage.data !== "" && typeof editedMessage.data.caption !== "undefined") {
+        _MESSAGE_MODEL.body = encryptKey(_MESSAGE_MODEL.body, _MESSAGE_MODEL.localID);
+
+        if (_MESSAGE_MODEL.data !== "") {
             _MESSAGE_MODEL.data = encryptKey(JSON.stringify(_MESSAGE_MODEL.data), _MESSAGE_MODEL.localID);
         }
-        else if(editedMessage.quote.title !== "") {
+
+        if (_MESSAGE_MODEL.quote.title !== "") {
             _MESSAGE_MODEL.quote.content = encryptKey(JSON.stringify(_MESSAGE_MODEL.quote.content), _MESSAGE_MODEL.localID);
         }
-
-        _MESSAGE_MODEL.body = encryptKey(_MESSAGE_MODEL.body, _MESSAGE_MODEL.localID);
         
         let emitData = {
             eventName: SOCKET_UPDATE_MESSAGE,
