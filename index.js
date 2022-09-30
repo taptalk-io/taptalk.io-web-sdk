@@ -1,8 +1,6 @@
-/* 27-09-2022 21:00  v1.30.0 */
+/* 27-09-2022 21:00  v1.30.1 */
 // Changes:
-// 1. shared media
-// 2. pin - unpin
-// 3. mute - unmute
+// 1. fix new emit on new room
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -413,7 +411,9 @@ tapReader.onload = function () {
 	for (let i in messages) {
       var m = JSON.parse(messages[i]);
       
-      handleEmit(m);
+      if(isDoneFirstSetupRoomList) {
+          handleEmit(m);
+      }
 	 
       switch(m.eventName) {
         case "chat/sendMessage":
@@ -1623,13 +1623,26 @@ exports.tapCoreRoomListManager = {
 			if(action === 'new emit') {
                 //saved message & pinnned room
                 if(!tapTalkRoomListHashmap[message.room.roomID]) {
-                    if(tapTalkRoomListIDPinned[message.room.roomID]) {
-                        tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage = message;
-                        tapTalkRoomListHashmapPinned[message.room.roomID].unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
-                    }else {
-                        tapTalkRoomListHashmapUnPinned[message.room.roomID].lastMessage = message;
-                        tapTalkRoomListHashmapUnPinned[message.room.roomID].unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
-                    }
+                    // if(tapTalkRoomListIDPinned[message.room.roomID]) {
+                    //     tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage = message;
+                    //     tapTalkRoomListHashmapPinned[message.room.roomID].unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
+                    // }else if(tapTalkRoomListHashmapUnPinned[message.room.roomID]) {
+                    //     tapTalkRoomListHashmapUnPinned[message.room.roomID].lastMessage = message;
+                    //     tapTalkRoomListHashmapUnPinned[message.room.roomID].unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
+                    // }else {
+                    //     tapTalkRoomListHashmapUnPinned[message.room.roomID] = {};
+                    //     tapTalkRoomListHashmapUnPinned[message.room.roomID].lastMessage = message;
+                    //     tapTalkRoomListHashmapUnPinned[message.room.roomID].unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
+                    // }
+                    tapTalkRoomListHashmapUnPinned[message.room.roomID] = {};
+                    tapTalkRoomListHashmapUnPinned[message.room.roomID].lastMessage = message;
+                    tapTalkRoomListHashmapUnPinned[message.room.roomID].unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
+
+                    let temporaryRoomList = tapTalkRoomListHashmapUnPinned[message.room.roomID];
+    
+                    delete tapTalkRoomListHashmapUnPinned[message.room.roomID];
+    
+                    tapTalkRoomListHashmapUnPinned = Object.assign({[message.room.roomID] : temporaryRoomList}, tapTalkRoomListHashmapUnPinned);
                 }else {
                     if(tapTalkRoomListIDPinned[message.room.roomID]) {
                         unreadCounter();
@@ -1648,8 +1661,8 @@ exports.tapCoreRoomListManager = {
                     }
                 }
                 //saved message & pinnned room
-			}
-			//new emit action
+            }
+            //new emit action
 
 			//update emit action
 			if(action === 'update emit') {
