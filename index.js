@@ -2852,6 +2852,30 @@ exports.tapCoreChatRoomManager = {
                     console.error('there was an error!', err);
                 });
         }
+    },
+
+    deleteAllChatRoomMessages : (roomIDs, callback) => {
+        let url = `${baseApiUrl}/v1/client/room/clear_chat`;
+        let _this = this;
+
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, {roomIDs: roomIDs})
+                .then(function (response) {
+                    if (response.error.code === "") {
+                        roomIDs.forEach((roomID) => {
+                            _this.tapCoreChatRoomManager.deleteMessageByRoomID(roomID);
+                        });
+						callback.onSuccess(response.data.clearedRoomIDs);
+                    };
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                    callback.onError(err);
+                });
+        }
     }
 }
 
