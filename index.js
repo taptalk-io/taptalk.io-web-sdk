@@ -3100,7 +3100,7 @@ exports.tapCoreMessageManager  = {
             _MESSAGE_MODEL["quote"]["content"] = _quoteContent;
             _MESSAGE_MODEL["quote"]["content"] = encryptKey(_MESSAGE_MODEL["quote"]["content"], _MESSAGE_MODEL["localID"]);
             _MESSAGE_MODEL["quote"]["fileID"] = isFileUsingFileID ? quotedMessage.data.fileID : "";
-            _MESSAGE_MODEL["quote"]["fileType"] = isFileUsingFileID ? (quotedMessage.type === CHAT_MESSAGE_TYPE_FILE ? "file" : (quotedMessage.type === CHAT_MESSAGE_TYPE_IMAGE ? "image" : "video")) : "";
+            _MESSAGE_MODEL["quote"]["fileType"] = isFileUsingFileID ? (quotedMessage.type === CHAT_MESSAGE_TYPE_FILE ? "file" : (quotedMessage.type === CHAT_MESSAGE_TYPE_IMAGE ? "image" : (quotedMessage.type === CHAT_MESSAGE_TYPE_VIDEO ? "video" : ""))) : (quotedMessage.type === CHAT_MESSAGE_TYPE_LINK ? "link" : "");
             _MESSAGE_MODEL["quote"]["imageURL"] = quotedMessage.type === CHAT_MESSAGE_TYPE_IMAGE ? (quotedMessage.data.fileURL ? quotedMessage.data.fileURL : "") : CHAT_MESSAGE_TYPE_LINK ? quotedMessage.data.image : "";
             _MESSAGE_MODEL["quote"]["videoURL"] =  quotedMessage.type === CHAT_MESSAGE_TYPE_VIDEO ? (quotedMessage.data.fileURL ? quotedMessage.data.fileURL : "") : "";
             _MESSAGE_MODEL["quote"]["title"] = _quoteTitle;
