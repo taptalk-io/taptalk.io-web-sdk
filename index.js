@@ -1,6 +1,7 @@
-/* 04-10-2022 16:00  v1.31.0-beta.1 */
+/* 04-10-2022 14:00  v1.32.0-beta.0 */
 // Changes:
-// 1. Added link quote file type
+// 1. Added tapRoomListListener with onChatRoomDeleted callback
+// 2. Handled room/clearChat socket
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -13,6 +14,7 @@ var tapTalkRoomListIDPinned = {}; //room list id pinned
 // var tapTalkEmitMessageQueue = {}; //room list undelivered message
 var tapRoomStatusListeners = [];
 var tapMessageListeners = [];
+var tapRoomListListeners = [];
 var tapListener = [];
 var taptalkContact = {};
 var tapTalkRandomColors = ['#f99181', '#a914db', '#f26046', '#fb76ab', '#c4c9d1', '#4239be', '#9c89f1', '#f4c22c'];
@@ -193,6 +195,7 @@ const SOCKET_OPEN_MESSAGE = "chat/openMessage";
 const SOCKET_AUTHENTICATION = "user/authentication";
 const SOCKET_USER_ONLINE_STATUS = "user/status";
 const SOCKET_USER_UPDATED = "user/updated";     
+const SOCKET_CLEAR_CHAT_ROOM = "room/clearChat";     
 const CHAT_MESSAGE_TYPE_TEXT = 1001;
 const CHAT_MESSAGE_TYPE_IMAGE = 1002;
 const CHAT_MESSAGE_TYPE_VIDEO = 1003;
@@ -445,6 +448,12 @@ tapReader.onload = function () {
                 tapRoomStatusListeners[i].onReceiveOnlineStatus(m.data.user, m.data.isOnline, m.data.lastActive);
             }
             break;
+
+        case SOCKET_CLEAR_CHAT_ROOM:
+            for (let i in tapRoomListListeners) {
+                tapRoomListListeners[i].onChatRoomDeleted(m.data.room.roomID);
+            }
+            break;
       }
     }
     
@@ -459,6 +468,10 @@ function handleEmit(emit) {
 
 		case "chat/updateMessage":
 				handleUpdateMessage(emit.data);
+			break;
+
+		case SOCKET_CLEAR_CHAT_ROOM:
+            module.exports.tapCoreChatRoomManager.deleteMessageByRoomID(emit.data.room.roomID);
 			break;
 	}
 }
@@ -1227,6 +1240,7 @@ exports.taptalk = {
         tapTalkRoomListHashmapUnPinned = {}; //room list last message - unpinned
         tapRoomStatusListeners = [];
         tapMessageListeners = [];
+        tapRoomListListeners = [];
         tapListener = [];
         taptalkContact = {};
         projectConfigs = null;
@@ -1489,6 +1503,11 @@ exports.taptalk = {
 }
 
 exports.tapCoreRoomListManager = {
+    
+    addRoomListListener : (callback) => {	
+        tapRoomListListeners.push(callback);
+    },
+
     getRoomListFromCache : () => {
         let arrayMessage = [];
         
