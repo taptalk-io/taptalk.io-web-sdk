@@ -1,11 +1,6 @@
-/* 28-09-2022 16:00  v1.31.0-beta.0 */
+/* 04-10-2022 16:00  v1.31.0-beta.1 */
 // Changes:
-// 1. Updated sendLinkMessage function & parameters
-// 2. Updated sendEmitWithEditedMessage to not change message type
-// 3. Added sendEmitWithEditedMessageModel method to tapCoreMessageManager
-// 4. Generated quote image from link preview data
-// 5. Fixed message data not encrypted when editing message
-// 6. Updated getUrlsFromString regex
+// 1. Added link quote file type
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -416,7 +411,9 @@ tapReader.onload = function () {
 	for (let i in messages) {
       var m = JSON.parse(messages[i]);
       
-      handleEmit(m);
+      if(isDoneFirstSetupRoomList) {
+          handleEmit(m);
+      }
 	 
       switch(m.eventName) {
         case "chat/sendMessage":
@@ -1628,13 +1625,26 @@ exports.tapCoreRoomListManager = {
 			if(action === 'new emit') {
                 //saved message & pinnned room
                 if(!tapTalkRoomListHashmap[message.room.roomID]) {
-                    if(tapTalkRoomListIDPinned[message.room.roomID]) {
-                        tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage = message;
-                        tapTalkRoomListHashmapPinned[message.room.roomID].unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
-                    }else {
-                        tapTalkRoomListHashmapUnPinned[message.room.roomID].lastMessage = message;
-                        tapTalkRoomListHashmapUnPinned[message.room.roomID].unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
-                    }
+                    // if(tapTalkRoomListIDPinned[message.room.roomID]) {
+                    //     tapTalkRoomListHashmapPinned[message.room.roomID].lastMessage = message;
+                    //     tapTalkRoomListHashmapPinned[message.room.roomID].unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
+                    // }else if(tapTalkRoomListHashmapUnPinned[message.room.roomID]) {
+                    //     tapTalkRoomListHashmapUnPinned[message.room.roomID].lastMessage = message;
+                    //     tapTalkRoomListHashmapUnPinned[message.room.roomID].unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
+                    // }else {
+                    //     tapTalkRoomListHashmapUnPinned[message.room.roomID] = {};
+                    //     tapTalkRoomListHashmapUnPinned[message.room.roomID].lastMessage = message;
+                    //     tapTalkRoomListHashmapUnPinned[message.room.roomID].unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
+                    // }
+                    tapTalkRoomListHashmapUnPinned[message.room.roomID] = {};
+                    tapTalkRoomListHashmapUnPinned[message.room.roomID].lastMessage = message;
+                    tapTalkRoomListHashmapUnPinned[message.room.roomID].unreadCount = (!message.isRead && user !== message.user.userID) ? 1 : 0;
+
+                    let temporaryRoomList = tapTalkRoomListHashmapUnPinned[message.room.roomID];
+    
+                    delete tapTalkRoomListHashmapUnPinned[message.room.roomID];
+    
+                    tapTalkRoomListHashmapUnPinned = Object.assign({[message.room.roomID] : temporaryRoomList}, tapTalkRoomListHashmapUnPinned);
                 }else {
                     if(tapTalkRoomListIDPinned[message.room.roomID]) {
                         unreadCounter();
@@ -1653,8 +1663,8 @@ exports.tapCoreRoomListManager = {
                     }
                 }
                 //saved message & pinnned room
-			}
-			//new emit action
+            }
+            //new emit action
 
 			//update emit action
 			if(action === 'update emit') {
