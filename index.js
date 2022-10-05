@@ -1,4 +1,4 @@
-/* 04-10-2022 14:00  v1.31.0-beta.0 */
+/* 04-10-2022 14:00  v1.31.0-beta.1 */
 // Changes:
 // 1. Added tapRoomListListener with onChatRoomDeleted callback
 // 2. Handled room/clearChat socket
