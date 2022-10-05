@@ -1,7 +1,8 @@
-/* 04-10-2022 14:00  v1.31.0-beta.1 */
+/* 04-10-2022 14:00  v1.31.0-beta.2 */
 // Changes:
 // 1. Added tapRoomListListener with onChatRoomDeleted callback
 // 2. Handled room/clearChat socket
+// 3. repair 
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -1913,6 +1914,15 @@ exports.tapCoreRoomListManager = {
 							}
 
 							_this.tapCoreMessageManager.markMessageAsDelivered(messageIDs);
+
+                            let _tapTalkRoomListHashmapPinned = {};
+
+                            Object.keys(tapTalkRoomListIDPinned).map((v) => {
+                                _tapTalkRoomListHashmapPinned[v] = tapTalkRoomListHashmapPinned[v];
+                                return null;
+                            })
+                            
+                            tapTalkRoomListHashmap = Object.assign({..._tapTalkRoomListHashmapPinned}, {..._this.tapCoreRoomListManager.reorderTapTalkRoomListUnpinned()});
 							
 							callback.onSuccess(tapTalkRoomListHashmap, tapTalkRooms);
 						}
@@ -2144,30 +2154,6 @@ exports.tapCoreRoomListManager = {
     pinRoom : async (roomIDs, callback) => {
         let url = `${baseApiUrl}/v1/client/room/pin`;
         let _this = this;
-
-        let _tmpRoom = {...tapTalkRoomListHashmapUnPinned};
-        let newRoomID = {};
-
-        roomIDs.map((v) => {
-            newRoomID[v] = v;
-            tapTalkRoomListIDPinned[v] = v;
-            tapTalkRoomListHashmapPinned = Object.assign({[v]: _tmpRoom[v]}, tapTalkRoomListHashmapPinned);
-            delete tapTalkRoomListHashmapUnPinned[v];
-            return null;
-        })
-        
-        tapTalkRoomListIDPinned = Object.assign({...newRoomID}, {...tapTalkRoomListIDPinned});
-
-        let _tapTalkRoomListHashmapPinned = {};
-
-        Object.keys(tapTalkRoomListIDPinned).map((v) => {
-            _tapTalkRoomListHashmapPinned[v] = tapTalkRoomListHashmapPinned[v];
-            return null;
-        })
-        
-        tapTalkRoomListHashmap = Object.assign({..._tapTalkRoomListHashmapPinned}, {..._this.tapCoreRoomListManager.reorderTapTalkRoomListUnpinned()});
-
-        callback.onSuccess(tapTalkRoomListIDPinned, tapTalkRoomListHashmap);
         
         if(Object.keys(tapTalkRoomListIDPinned).length >= MAX_PINNED_ROOM) {
             callback.onError("MAX_PINNED", "You have reached the maximum of pinned chat rooms.");
@@ -2179,7 +2165,29 @@ exports.tapCoreRoomListManager = {
                 doXMLHTTPRequest('POST', authenticationHeader, url, {roomIDs: roomIDs})
                     .then(function (response) {
                         if(response.error.code === "") {
-                           
+                            let _tmpRoom = {...tapTalkRoomListHashmapUnPinned};
+                            let newRoomID = {};
+                    
+                            roomIDs.map((v) => {
+                                newRoomID[v] = v;
+                                tapTalkRoomListIDPinned[v] = v;
+                                tapTalkRoomListHashmapPinned = Object.assign({[v]: _tmpRoom[v]}, tapTalkRoomListHashmapPinned);
+                                delete tapTalkRoomListHashmapUnPinned[v];
+                                return null;
+                            })
+                            
+                            tapTalkRoomListIDPinned = Object.assign({...newRoomID}, {...tapTalkRoomListIDPinned});
+                    
+                            let _tapTalkRoomListHashmapPinned = {};
+                    
+                            Object.keys(tapTalkRoomListIDPinned).map((v) => {
+                                _tapTalkRoomListHashmapPinned[v] = tapTalkRoomListHashmapPinned[v];
+                                return null;
+                            })
+                            
+                            tapTalkRoomListHashmap = Object.assign({..._tapTalkRoomListHashmapPinned}, {..._this.tapCoreRoomListManager.reorderTapTalkRoomListUnpinned()});
+                    
+                            callback.onSuccess(tapTalkRoomListIDPinned, tapTalkRoomListHashmap);
                         }else {
                             _this.taptalk.checkErrorResponse(response, null, () => {
                                 _this.tapCoreRoomListManager.pinRoom(roomIDs, callack)
@@ -2197,31 +2205,7 @@ exports.tapCoreRoomListManager = {
         let url = `${baseApiUrl}/v1/client/room/unpin`;
         let _this = this;
 
-        let _tmpRoom = {...tapTalkRoomListHashmapPinned};
-        let newRoomID = {};
-
-        roomIDs.map((v) => {
-            tapTalkRoomListHashmapUnPinned = Object.assign({[v]: _tmpRoom[v]}, tapTalkRoomListHashmapUnPinned);
-            delete tapTalkRoomListHashmapPinned[v];
-            delete tapTalkRoomListIDPinned[v];
-
-            return null;
-        })
-
-        tapTalkRoomListIDPinned = Object.assign({...newRoomID}, {...tapTalkRoomListIDPinned});
-
-        let _tapTalkRoomListHashmapPinned = {};
-
-        Object.keys(tapTalkRoomListIDPinned).map((v) => {
-            _tapTalkRoomListHashmapPinned[v] = tapTalkRoomListHashmapPinned[v];
-            return null;
-        })
-        
-        tapTalkRoomListHashmapUnPinned = {..._this.tapCoreRoomListManager.reorderTapTalkRoomListUnpinned()};
-        tapTalkRoomListHashmap = Object.assign({..._tapTalkRoomListHashmapPinned}, {...tapTalkRoomListHashmapUnPinned});
-        
-        callback.onSuccess(tapTalkRoomListIDPinned, tapTalkRoomListHashmap);
-    
+       
         if(this.taptalk.isAuthenticated()) {
             let userData = getLocalStorageObject('TapTalk.UserData');
             authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
@@ -2229,7 +2213,30 @@ exports.tapCoreRoomListManager = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {roomIDs: roomIDs})
                 .then(function (response) {
                     if(response.error.code === "") {
+                        let _tmpRoom = {...tapTalkRoomListHashmapPinned};
+                        let newRoomID = {};
+                
+                        roomIDs.map((v) => {
+                            tapTalkRoomListHashmapUnPinned = Object.assign({[v]: _tmpRoom[v]}, tapTalkRoomListHashmapUnPinned);
+                            delete tapTalkRoomListHashmapPinned[v];
+                            delete tapTalkRoomListIDPinned[v];
+                
+                            return null;
+                        })
+                
+                        tapTalkRoomListIDPinned = Object.assign({...newRoomID}, {...tapTalkRoomListIDPinned});
+                
+                        let _tapTalkRoomListHashmapPinned = {};
+                
+                        Object.keys(tapTalkRoomListIDPinned).map((v) => {
+                            _tapTalkRoomListHashmapPinned[v] = tapTalkRoomListHashmapPinned[v];
+                            return null;
+                        })
                         
+                        tapTalkRoomListHashmapUnPinned = {..._this.tapCoreRoomListManager.reorderTapTalkRoomListUnpinned()};
+                        tapTalkRoomListHashmap = Object.assign({..._tapTalkRoomListHashmapPinned}, {...tapTalkRoomListHashmapUnPinned});
+                        
+                        callback.onSuccess(tapTalkRoomListIDPinned, tapTalkRoomListHashmap);
                     }else {
                         _this.taptalk.checkErrorResponse(response, null, () => {
                             _this.tapCoreRoomListManager.unpinRoom(roomIDs, callack)
