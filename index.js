@@ -1,8 +1,6 @@
-/* 04-10-2022 14:00  v1.31.0-beta.2 */
+/* 10-10-2022 14:00  v1.31.0-beta.3 */
 // Changes:
-// 1. Added tapRoomListListener with onChatRoomDeleted callback
-// 2. Handled room/clearChat socket
-// 3. repair 
+// 1. Fixed starred messages not deleted in deleteMessageByRoomID 
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -499,6 +497,10 @@ var handleNewMessage = (message) => {
 
         if(tapTalkRoomListHashmapUnPinned[roomID]) {
             delete tapTalkRoomListHashmapUnPinned[roomID];
+        }
+
+        if (taptalkStarMessageHashmap[roomID]) {
+            delete taptalkStarMessageHashmap[roomID];
         }
 
 		delete tapTalkRooms[roomID];
@@ -2756,15 +2758,19 @@ exports.tapCoreChatRoomManager = {
 	},
 
     deleteMessageByRoomID : (roomID) => {
-        if(this.taptalk.isAuthenticated()) {
+        if (this.taptalk.isAuthenticated()) {
             delete tapTalkRoomListHashmap[roomID];
 
-            if(!tapTalkRoomListHashmapPinned[roomID]) {
+            if (tapTalkRoomListHashmapPinned[roomID]) {
                 delete tapTalkRoomListHashmapPinned[roomID];
             }
 
-            if(!tapTalkRoomListHashmapUnPinned[roomID]) {
+            if (tapTalkRoomListHashmapUnPinned[roomID]) {
                 delete tapTalkRoomListHashmapUnPinned[roomID];
+            }
+
+            if (taptalkStarMessageHashmap[roomID]) {
+                delete taptalkStarMessageHashmap[roomID];
             }
 
 		    delete tapTalkRooms[roomID];
