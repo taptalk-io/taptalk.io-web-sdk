@@ -30,6 +30,7 @@ var taptalkStarMessageHashmap = {};
 var taptalkUnreadMessageList = {};
 var taptalkPinnedMessageHashmap = {};
 var taptalkPinnedMessageIDHashmap = {};
+var taptalkIndexedDBNotSupport = "Your browser doesn't support a stable version of IndexedDB. Such and such feature will not be available.";
 
 const MAX_PINNED_ROOM = 10;
 
@@ -38,91 +39,99 @@ var db;
 
 //initiate index db for local file(image, video, file)
 function addFileToDB(fileID, base64, fileType) {
-	let tx = db.transaction(['files'], 'readwrite');
-	
-	let store = tx.objectStore('files');
-
-	var objectStoreRequest = store.get(fileID);
-	
-	objectStoreRequest.onsuccess = function(event) {
-		if(!objectStoreRequest.result) {
-			let file = {file: base64, type: fileType, timestamp: new Date().valueOf()};
-
-			store.add(file, fileID)
-		}
-	};
-
-	// tx.oncomplete = function() { 
-
-	// }
-
-	tx.onerror = function(event) {
-		console.log('error storing note files' + event.target.errorCode);
-	}
+    if(db) {
+        let tx = db.transaction(['files'], 'readwrite');
+        
+        let store = tx.objectStore('files');
+    
+        var objectStoreRequest = store.get(fileID);
+        
+        objectStoreRequest.onsuccess = function(event) {
+            if(!objectStoreRequest.result) {
+                let file = {file: base64, type: fileType, timestamp: new Date().valueOf()};
+    
+                store.add(file, fileID)
+            }
+        };
+    
+        // tx.oncomplete = function() { 
+    
+        // }
+    
+        tx.onerror = function(event) {
+            console.log('error storing note files' + event.target.errorCode);
+        }
+    }else {
+        console.log(taptalkIndexedDBNotSupport);
+    }
 }
 
 function deleteExpiredFileKey() {
-	let tx = db.transaction(['files'], 'readwrite');
-	
-	let store = tx.objectStore('files');
-	
-	if(expiredKey.length > 0) {
-		for(let i in expiredKey) {
-			store.delete(expiredKey[i])
-		}
-	}
+    if(db) {
+        let tx = db.transaction(['files'], 'readwrite');
+        
+        let store = tx.objectStore('files');
+        
+        if(expiredKey.length > 0) {
+            for(let i in expiredKey) {
+                store.delete(expiredKey[i])
+            }
+        }
+    }else {
+        console.log(taptalkIndexedDBNotSupport);
+    }
 }
 
 (function() {
 	if (!window.indexedDB) {
-		console.log("Your browser doesn't support a stable version of IndexedDB. Such and such feature will not be available.");
-	}
-
-	var dbTapTalk = indexedDB.open('tapFiles', 1);
-
-	dbTapTalk.onupgradeneeded = function(event) {
-		db = event.target.result;
-		let notes = db.createObjectStore('files');
-	}
-
-	dbTapTalk.onsuccess = function(event) {
-        db = event.target.result;
-
-        let tx = db.transaction(['files'], 'readwrite');
-
-        let store = tx.objectStore('files');
-
-        var objectStoreRequest = store.getAll();
-
-        var objectKeyRequest = store.getAllKeys();
-
-        objectStoreRequest.onsuccess = function(event) {
-            if(!objectStoreRequest.result) {
-                let file = {file: base64, type: fileType, timestamp: new Date().valueOf()};
-
-                store.add(file, fileID)
-            }
-        };
-        
-        objectKeyRequest.onsuccess = function(event) {
-            for(let i in objectKeyRequest.result) {
-                module.exports.tapCoreChatRoomManager.getFileFromDB(objectKeyRequest.result[i], function(data) {
-                    //two weeks from now will be deleted
-                    if((new Date().valueOf()-data.timestamp) > 1576155138) {
-                        expiredKey.push(objectKeyRequest.result[i]);
-                    }
-                    
-                    if(i === ((objectKeyRequest.result.length - 1).toString())) {
-                        deleteExpiredFileKey();
-                    }
-                })
-            }
-        };
+		console.log(taptalkIndexedDBNotSupport);
+	}else {
+        var dbTapTalk = indexedDB.open('tapFiles', 1);
+    
+        dbTapTalk.onupgradeneeded = function(event) {
+            db = event.target.result;
+            let notes = db.createObjectStore('files');
+        }
+    
+        dbTapTalk.onsuccess = function(event) {
+            db = event.target.result;
+    
+            let tx = db.transaction(['files'], 'readwrite');
+    
+            let store = tx.objectStore('files');
+    
+            var objectStoreRequest = store.getAll();
+    
+            var objectKeyRequest = store.getAllKeys();
+    
+            objectStoreRequest.onsuccess = function(event) {
+                if(!objectStoreRequest.result) {
+                    let file = {file: base64, type: fileType, timestamp: new Date().valueOf()};
+    
+                    store.add(file, fileID)
+                }
+            };
+            
+            objectKeyRequest.onsuccess = function(event) {
+                for(let i in objectKeyRequest.result) {
+                    module.exports.tapCoreChatRoomManager.getFileFromDB(objectKeyRequest.result[i], function(data) {
+                        //two weeks from now will be deleted
+                        if((new Date().valueOf()-data.timestamp) > 1576155138) {
+                            expiredKey.push(objectKeyRequest.result[i]);
+                        }
+                        
+                        if(i === ((objectKeyRequest.result.length - 1).toString())) {
+                            deleteExpiredFileKey();
+                        }
+                    })
+                }
+            };
+        }
+    
+        dbTapTalk.onerror = function(event) {
+            console.log('error opening database ' + event.target.errorCode);
+        }
     }
-
-    dbTapTalk.onerror = function(event) {
-		console.log('error opening database ' + event.target.errorCode);
-	}
 })();
 
 var authenticationHeader = {
@@ -2767,15 +2776,19 @@ exports.tapCoreChatRoomManager = {
 	// }
     
     getFileFromDB(fileID, callback) {
-		let tx = db.transaction(['files'], 'readwrite');
-	
-		let store = tx.objectStore('files');
-
-		var objectStoreRequest = store.get(fileID);
-		
-		objectStoreRequest.onsuccess = function(event) {
-			callback(objectStoreRequest.result);
-		}
+        if(db) {
+            let tx = db.transaction(['files'], 'readwrite');
+        
+            let store = tx.objectStore('files');
+    
+            var objectStoreRequest = store.get(fileID);
+            
+            objectStoreRequest.onsuccess = function(event) {
+                callback(objectStoreRequest.result);
+            }
+        }else {
+            console.log(taptalkIndexedDBNotSupport);
+        }
     },
     
     getCurrentChatInRoom : (roomID) => {
