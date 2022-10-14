@@ -5197,7 +5197,31 @@ exports.tapCoreMessageManager  = {
         }else {
             callback.onError("Worker is not supported");
         }
-    }
+    },
+
+    createScheduledMessage : (message, scheduledTime, callback) => {
+        let url = `${baseApiUrl}/v1/chat/scheduled_message/create`;
+        let _this = this;
+        
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {message: message, scheduledTime: scheduledTime})
+                .then(function (response) {
+                    if(response.error.code !== "") {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.createScheduledMessage(message, scheduledTime, callback);
+                        });
+                    }else {
+                        callback.onSuccess(response.data);
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
 }
 
 //queue upload file
