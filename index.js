@@ -5202,7 +5202,7 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    getScheduledMessages : (roomID, callback) => {
+    fetchScheduledMessages : (roomID, callback) => {
         let url = `${baseApiUrl}/v1/chat/scheduled_message/get_scheduled_list`;
         let _this = this;
         
@@ -5214,7 +5214,7 @@ exports.tapCoreMessageManager  = {
                 .then(function (response) {
                     if (response.error.code !== "") {
                         _this.taptalk.checkErrorResponse(response, null, () => {
-                            _this.tapCoreMessageManager.getScheduledMessages(roomID, callback);
+                            _this.tapCoreMessageManager.fetchScheduledMessages(roomID, callback);
                         });
                     }
                     else {
