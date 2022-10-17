@@ -5202,6 +5202,31 @@ exports.tapCoreMessageManager  = {
         }
     },
 
+    getScheduledMessages : (roomID, callback) => {
+        let url = `${baseApiUrl}/v1/chat/scheduled_message/get_scheduled_list`;
+        let _this = this;
+        
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID})
+                .then(function (response) {
+                    if (response.error.code !== "") {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.getScheduledMessages(roomID, callback);
+                        });
+                    }
+                    else {
+                        callback.onSuccess(response.data.items);
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
     createScheduledMessage : (message, scheduledTime, callback) => {
         let url = `${baseApiUrl}/v1/chat/scheduled_message/create`;
         let _this = this;
@@ -5212,11 +5237,12 @@ exports.tapCoreMessageManager  = {
     
             doXMLHTTPRequest('POST', authenticationHeader, url, {message: message, scheduledTime: scheduledTime})
                 .then(function (response) {
-                    if(response.error.code !== "") {
+                    if (response.error.code !== "") {
                         _this.taptalk.checkErrorResponse(response, null, () => {
                             _this.tapCoreMessageManager.createScheduledMessage(message, scheduledTime, callback);
                         });
-                    }else {
+                    }
+                    else {
                         callback.onSuccess(response.data);
                     }
                 })
