@@ -3183,11 +3183,14 @@ exports.tapCoreMessageManager  = {
             _MESSAGE_MODEL["quote"]["imageURL"] = quotedMessage.type === CHAT_MESSAGE_TYPE_IMAGE ? (quotedMessage.data.fileURL ? quotedMessage.data.fileURL : "") : CHAT_MESSAGE_TYPE_LINK ? quotedMessage.data.image : "";
             _MESSAGE_MODEL["quote"]["videoURL"] =  quotedMessage.type === CHAT_MESSAGE_TYPE_VIDEO ? (quotedMessage.data.fileURL ? quotedMessage.data.fileURL : "") : "";
             _MESSAGE_MODEL["quote"]["title"] = _quoteTitle;
-        }else {
-            _MESSAGE_MODEL["quote"]["content"] = quoteContent;
-            _MESSAGE_MODEL["quote"]["content"] = encryptKey(_MESSAGE_MODEL["quote"]["content"], _MESSAGE_MODEL["localID"]);
-            _MESSAGE_MODEL["quote"]["imageURL"] = quoteImageUrl;
-            _MESSAGE_MODEL["quote"]["title"] = quoteTitle;
+        }
+        else {
+            _MESSAGE_MODEL["quote"]["content"] = quoteContent ? quoteContent : "";
+            if (quoteContent) {
+                _MESSAGE_MODEL["quote"]["content"] = encryptKey(_MESSAGE_MODEL["quote"]["content"], _MESSAGE_MODEL["localID"]);
+            }
+            _MESSAGE_MODEL["quote"]["imageURL"] = quoteImageUrl ? quoteImageUrl : "";
+            _MESSAGE_MODEL["quote"]["title"] = quoteTitle ? quoteTitle : "";
         }
         //quote
 
