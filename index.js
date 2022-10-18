@@ -5218,6 +5218,19 @@ exports.tapCoreMessageManager  = {
                         });
                     }
                     else {
+                        for (var i in response.data.items) {
+                            response.data.items[i].message.body = decryptKey(response.data.items[i].message.body, response.data.items[i].message.localID);
+
+                            if (response.data.items[i].message.data !== "") {
+                                var messageIndex = response.data.items[i].message;
+                                messageIndex.data = JSON.parse(decryptKey(messageIndex.data, messageIndex.localID));
+                            }
+
+                            if (response.data.items[i].message.quote.content !== "") {
+                                var messageIndex = response.data.items[i].message;
+                                messageIndex.quote.content = decryptKey(messageIndex.quote.content, messageIndex.localID)
+                            }
+                        }
                         callback.onSuccess(response.data.items);
                     }
                 })
