@@ -5218,20 +5218,29 @@ exports.tapCoreMessageManager  = {
                         });
                     }
                     else {
-                        for (var i in response.data.items) {
-                            response.data.items[i].message.body = decryptKey(response.data.items[i].message.body, response.data.items[i].message.localID);
+                        let scheduledItems = response.data.items;
+                        let scheduledMessages;
+                        for (var i in scheduledItems) {
+                            let message = scheduledItems[i].message;
+                            message.body = decryptKey(message.body, message.localID);
 
-                            if (response.data.items[i].message.data !== "") {
-                                var messageIndex = response.data.items[i].message;
+                            if (message.data !== "") {
+                                var messageIndex = message;
                                 messageIndex.data = JSON.parse(decryptKey(messageIndex.data, messageIndex.localID));
                             }
 
-                            if (response.data.items[i].message.quote.content !== "") {
-                                var messageIndex = response.data.items[i].message;
+                            if (message.quote.content !== "") {
+                                var messageIndex = message;
                                 messageIndex.quote.content = decryptKey(messageIndex.quote.content, messageIndex.localID)
                             }
+
+                            mappedMessage = {...message};
+                            mappedMessage.messageID = scheduledItems[i].id;
+                            mappedMessage.created = scheduledItems[i].scheduledTime;
+                            mappedMessage.isSending = false;
+                            scheduledMessages = Object.assign({[mappedMessage.localID] : mappedMessage}, scheduledMessages);
                         }
-                        callback.onSuccess(response.data.items);
+                        callback.onSuccess(scheduledItems, scheduledMessages);
                     }
                 })
                 .catch(function (err) {
