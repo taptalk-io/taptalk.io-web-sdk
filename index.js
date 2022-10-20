@@ -5290,7 +5290,7 @@ exports.tapCoreMessageManager  = {
                         });
                     }
                     else {
-                        callback.onSuccess(response.data.sentIDs);
+                        callback.onSuccess(response.data);
                     }
                 })
                 .catch(function (err) {
@@ -5312,6 +5312,56 @@ exports.tapCoreMessageManager  = {
                     if (response.error.code !== "") {
                         _this.taptalk.checkErrorResponse(response, null, () => {
                             _this.tapCoreMessageManager.editScheduledMessageTime(scheduledMessageID, scheduledTime, callback);
+                        });
+                    }
+                    else {
+                        callback.onSuccess(response.data);
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    editScheduledMessageContent : (scheduledMessageID, updatedMessage, callback) => {
+        let url = `${baseApiUrl}/v1/chat/scheduled_message/edit_content`;
+        let _this = this;
+        
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {id: scheduledMessageID, message: updatedMessage})
+                .then(function (response) {
+                    if (response.error.code !== "") {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.editScheduledMessageContent(scheduledMessageID, scheduledTime, callback);
+                        });
+                    }
+                    else {
+                        callback.onSuccess(response.data);
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    deleteScheduledMessage : (scheduledMessageIDs, roomID, callback) => {
+        let url = `${baseApiUrl}/v1/chat/scheduled_message/delete`;
+        let _this = this;
+        
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {ids: scheduledMessageIDs, roomID: roomID})
+                .then(function (response) {
+                    if (response.error.code !== "") {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.deleteScheduledMessage(scheduledMessageIDs, roomID, callback);
                         });
                     }
                     else {
