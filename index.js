@@ -5273,6 +5273,56 @@ exports.tapCoreMessageManager  = {
                 });
         }
     },
+
+    sendScheduledMessageNow : (scheduledMessageIDs, roomID, callback) => {
+        let url = `${baseApiUrl}/v1/chat/scheduled_message/send_now`;
+        let _this = this;
+        
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {ids: scheduledMessageIDs, roomID: roomID})
+                .then(function (response) {
+                    if (response.error.code !== "") {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.sendScheduledMessageNow(scheduledMessageIDs, roomID, callback);
+                        });
+                    }
+                    else {
+                        callback.onSuccess(response.data.sentIDs);
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    editScheduledMessageTime : (scheduledMessageID, scheduledTime, callback) => {
+        let url = `${baseApiUrl}/v1/chat/scheduled_message/edit_scheduled_time`;
+        let _this = this;
+        
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {id: scheduledMessageID, scheduledTime: scheduledTime})
+                .then(function (response) {
+                    if (response.error.code !== "") {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.editScheduledMessageTime(scheduledMessageID, scheduledTime, callback);
+                        });
+                    }
+                    else {
+                        callback.onSuccess(response.data);
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
 }
 
 //queue upload file
