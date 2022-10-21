@@ -1,6 +1,6 @@
-/* 10-10-2022 17:00  v1.31.0 */
+/* 18-10-2022 17:00  v1.31.1 */
 // Changes:
-// 1. Fixed starred messages not deleted in deleteMessageByRoomID 
+// 1. Fixed sendEmitWithEditedMessage
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -3635,7 +3635,7 @@ exports.tapCoreMessageManager  = {
             _message.body = newMessage;
         }
 
-        sendEmitWithEditedMessageModel(_message, callback);
+        this.tapCoreMessageManager.sendEmitWithEditedMessageModel(_message, callback);
     },
 
     sendEmitWithEditedMessageModel : (editedMessage, callback) => {
