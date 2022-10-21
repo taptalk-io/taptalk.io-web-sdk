@@ -880,6 +880,73 @@ class TapEmitMessageQueue {
 
 var tapEmitMsgQueue = new TapEmitMessageQueue();
 
+class TapScheduledMessageQueue {
+	constructor() {
+		this.scheduledItemQueue = [];
+		this.isRunningScheduledMessageQueue = false;
+	}
+
+	runScheduledMessageQueue() {
+		if (!navigator.onLine || !module.exports.taptalk.isConnected()) {
+			this.isRunningScheduledMessageQueue = false;
+		}
+        else {
+			this.isRunningScheduledMessageQueue = true;
+		}
+
+		if (this.scheduledItemQueue.length > 0 && this.isRunningScheduledMessageQueue) {
+            const message = this.scheduledItemQueue[0].message;
+            const scheduledTime = this.scheduledItemQueue[0].scheduledTime;
+            const callback = this.scheduledItemQueue[0].callback;
+            let handleScheduledMessageFinished = () => {
+                this.scheduledItemQueue.shift();
+                this.runScheduledMessageQueue();
+            }
+            if (scheduledTime > new Date().valueOf()) {
+                module.exports.tapCoreMessageManager.createScheduledMessage(message, scheduledTime, {
+                    onSuccess: (response) => {
+                        callback.onSuccess(response);
+                        handleScheduledMessageFinished();
+                    },
+                    onError: (errCode, errMes) => {
+                        callback.onError(errCode, errMes);
+                        handleScheduledMessageFinished();
+                    }
+                }, false);
+            }
+            else {
+                module.exports.tapCoreMessageManager.sendCustomMessage(message, () => {
+                    callback.onSuccess({
+                        success: false,
+                        message: "Message was sent",
+                        createdItem: message
+                    });
+                    handleScheduledMessageFinished();
+                });
+            }
+		}
+        else {
+			this.isRunningScheduledMessageQueue = false;
+			return;
+		}
+	}
+
+	pushScheduledMessageQueue(message, scheduledTime, callback) {
+        const scheduledItem = {
+            message: message, 
+            scheduledTime: scheduledTime,
+            callback: callback
+        };
+        this.scheduledItemQueue.push(scheduledItem);
+
+		if (!this.isRunningScheduledMessageQueue) {
+			this.runScheduledMessageQueue();
+		}
+	}
+}
+
+var scheduledMessageQueue = new TapScheduledMessageQueue();
+
 //image compress
 var urlToFile = (url, filename, mimeType) => {
 	return (
@@ -1149,7 +1216,8 @@ exports.taptalk = {
             
                         webSocket.onopen = function () {
                             callback.onSuccess('Successfully connected to TapTalk.io server');
-                            tapEmitMsgQueue.runEmitQueue();	
+                            tapEmitMsgQueue.runEmitQueue();
+                            scheduledMessageQueue.runScheduledMessageQueue();
                             isFirstConnectedToWebSocket = true;
                         }
                         webSocket.onclose = function () {
@@ -5249,7 +5317,11 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    createScheduledMessage : (message, scheduledTime, callback) => {
+    createScheduledMessage : (message, scheduledTime, callback, addToQueue = true) => {
+        if (addToQueue) {
+            scheduledMessageQueue.pushScheduledMessageQueue(message, scheduledTime, callback);
+            return;
+        }
         let url = `${baseApiUrl}/v1/chat/scheduled_message/create`;
         let _this = this;
         
