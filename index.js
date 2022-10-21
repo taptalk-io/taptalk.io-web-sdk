@@ -1,6 +1,15 @@
-/* 18-10-2022 17:00  v1.31.1 */
+/* 21-10-2022 20.00  v1.32.0-beta.0 */
 // Changes:
-// 1. Fixed sendEmitWithEditedMessage
+// 1. Added createScheduledMessage method to tapCoreMessageManager
+// 2. Added fetchScheduledMessages method to tapCoreMessageManager
+// 3. Added sendScheduledMessageNow method to tapCoreMessageManager
+// 4. Added editScheduledMessageTime method to tapCoreMessageManager
+// 5. Added editScheduledMessageContent method to tapCoreMessageManager
+// 6. Added deleteScheduledMessage method to tapCoreMessageManager
+// 7. Added queue for create scheduled message
+// 8. Added onReceiveScheduledMessage callback tapRoomStatusListener
+// 9. Added isScheduled parameter to onReceiveNewMessage callback
+// 10. Fixed crash when quote is empty in constructTapTalkMessageModelWithQuote
 
 var define, CryptoJS;
 var crypto = require('crypto');
