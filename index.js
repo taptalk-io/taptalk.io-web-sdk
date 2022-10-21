@@ -204,6 +204,7 @@ const SOCKET_AUTHENTICATION = "user/authentication";
 const SOCKET_USER_ONLINE_STATUS = "user/status";
 const SOCKET_USER_UPDATED = "user/updated";     
 const SOCKET_CLEAR_CHAT_ROOM = "room/clearChat";     
+const SOCKET_SCHEDULED_MESSAGE = "room/scheduleMessage";     
 const CHAT_MESSAGE_TYPE_TEXT = 1001;
 const CHAT_MESSAGE_TYPE_IMAGE = 1002;
 const CHAT_MESSAGE_TYPE_VIDEO = 1003;
@@ -421,6 +422,8 @@ tapReader.onload = function () {
 	var messages = this.result.split('\n');
 	for (let i in messages) {
       var m = JSON.parse(messages[i]);
+
+    //   console.log(m)
       
       if(isDoneFirstSetupRoomList) {
           handleEmit(m);
@@ -454,6 +457,12 @@ tapReader.onload = function () {
         case "user/status":
             for(let i in tapRoomStatusListeners) {
                 tapRoomStatusListeners[i].onReceiveOnlineStatus(m.data.user, m.data.isOnline, m.data.lastActive);
+            }
+            break;
+
+        case "room/scheduleMessage":
+            for(let i in tapRoomStatusListeners) {
+                tapRoomStatusListeners[i].onReceiveScheduledMessage(m.data.room, m.data.timestamp);
             }
             break;
 
