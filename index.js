@@ -432,7 +432,7 @@ tapReader.onload = function () {
       switch(m.eventName) {
         case "chat/sendMessage":
             for(let i in tapMessageListeners) {
-                tapMessageListeners[i].onReceiveNewMessage(m.data);
+                tapMessageListeners[i].onReceiveNewMessage(m.data, m.isScheduled);
             }
             break;
 
