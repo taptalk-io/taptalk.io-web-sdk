@@ -15,6 +15,7 @@ var tapTalkRoomListIDPinned = {}; //room list id pinned
 var tapRoomStatusListeners = [];
 var tapMessageListeners = [];
 var tapRoomListListeners = [];
+var tapContactListeners = [];
 var tapListener = [];
 var taptalkContact = {};
 var tapTalkRandomColors = ['#f99181', '#a914db', '#f26046', '#fb76ab', '#c4c9d1', '#4239be', '#9c89f1', '#f4c22c'];
@@ -204,6 +205,8 @@ const SOCKET_OPEN_MESSAGE = "chat/openMessage";
 const SOCKET_AUTHENTICATION = "user/authentication";
 const SOCKET_USER_ONLINE_STATUS = "user/status";
 const SOCKET_USER_UPDATED = "user/updated";     
+const SOCKET_USER_BLOCKED = "user/block";     
+const SOCKET_USER_UNBLOCKED = "user/unblock";     
 const SOCKET_CLEAR_CHAT_ROOM = "room/clearChat";     
 const SOCKET_SCHEDULED_MESSAGE = "room/scheduleMessage";     
 const CHAT_MESSAGE_TYPE_TEXT = 1001;
@@ -461,7 +464,7 @@ tapReader.onload = function () {
             }
             break;
 
-        case "room/scheduleMessage":
+        case SOCKET_SCHEDULED_MESSAGE:
             for(let i in tapRoomStatusListeners) {
                 tapRoomStatusListeners[i].onReceiveScheduledMessage(m.data.room, m.data.timestamp);
             }
@@ -470,6 +473,18 @@ tapReader.onload = function () {
         case SOCKET_CLEAR_CHAT_ROOM:
             for (let i in tapRoomListListeners) {
                 tapRoomListListeners[i].onChatRoomDeleted(m.data.room.roomID);
+            }
+            break;
+
+        case SOCKET_USER_BLOCKED:
+            for (let i in tapContactListeners) {
+                tapContactListeners[i].onContactBlocked(m.data.user);
+            }
+            break;
+
+        case SOCKET_USER_UNBLOCKED:
+            for (let i in tapContactListeners) {
+                tapContactListeners[i].onContactUnblocked(m.data.user);
             }
             break;
       }
@@ -1331,6 +1346,7 @@ exports.taptalk = {
         tapRoomStatusListeners = [];
         tapMessageListeners = [];
         tapRoomListListeners = [];
+        tapContactListeners = [];
         tapListener = [];
         taptalkContact = {};
         projectConfigs = null;
@@ -5510,6 +5526,11 @@ tapUplQueue.setCallback((item) => {
 //queue upload file
 
 exports.tapCoreContactManager  = {
+    
+    addContactListener : (callback) => {	
+        tapContactListeners.push(callback);
+    },
+
     getAllUserContacts : (callback) => {
         let url = `${baseApiUrl}/v1/client/contact/list`;
         let _this = this;
