@@ -1,6 +1,6 @@
-/* 10-10-2022 17:00  v1.31.0 */
+/* 10-10-2022 17:00  v1.32.0 */
 // Changes:
-// 1. Fixed starred messages not deleted in deleteMessageByRoomID 
+// 1. send custom message without emit
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -1032,11 +1032,16 @@ exports.taptalk = {
         return data; 
     },
 
-    init : (appID, appSecret, baseUrlApi) => {
+    init : (appID, appSecret, baseUrlApi, withOutRoomList = false) => {
         authenticationHeader["App-Key"] = btoa(`${appID}:${appSecret}`);
         // authenticationHeader["Server-Key"] = btoa(`${serverID}:${serverSecret}`);
         authenticationHeader["Device-Identifier"] = getDeviceID();
         baseApiUrl = baseUrlApi;
+
+        if(withOutRoomList) {
+            isDoneFirstSetupRoomList = true;
+        }
+
 
         this.taptalk.refreshProjectConfigs();
     },
