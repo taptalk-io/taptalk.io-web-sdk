@@ -5752,6 +5752,106 @@ exports.tapCoreContactManager  = {
                 });
         }
     },
+
+    getBlockedUserList : (callback) => {
+        let url = `${baseApiUrl}/v1/client/contact/get_blocked_list`;
+        let _this = this;
+
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, "")
+                .then(function (response) {
+                    if (response.error.code === "" && response.data.blockedContacts) {
+                        callback.onSuccess(response.data.blockedContacts);
+                    }
+                    else {
+                        _this.taptalk.checkErrorResponse(response, callback, () => {
+                            _this.tapCoreContactManager.getBlockedUserList(callback)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    getBlockedUserIDs : (callback) => {
+        let url = `${baseApiUrl}/v1/client/contact/get_blocked_user_ids`;
+        let _this = this;
+
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, "")
+                .then(function (response) {
+                    if (response.error.code === "" && response.data.blockedUserIDs) {
+                        callback.onSuccess(response.data.blockedUserIDs);
+                    }
+                    else {
+                        _this.taptalk.checkErrorResponse(response, callback, () => {
+                            _this.tapCoreContactManager.getBlockedUserIDs(callback)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    blockUser : (userID, callback) => {
+        let url = `${baseApiUrl}/v1/client/contact/block`;
+        let _this = this;
+
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, {userID: userID})
+                .then(function (response) {
+                    if (response.error.code === "") {
+                        callback.onSuccess(response.data);
+                    }
+                    else {
+                        _this.taptalk.checkErrorResponse(response, callback, () => {
+                            _this.tapCoreContactManager.blockUser(userID, callback);
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    unblockUser : (userID, callback) => {
+        let url = `${baseApiUrl}/v1/client/contact/unblock`;
+        let _this = this;
+
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, {userID: userID})
+                .then(function (response) {
+                    if (response.error.code === "") {
+                        callback.onSuccess(response.data);
+                    }
+                    else {
+                        _this.taptalk.checkErrorResponse(response, callback, () => {
+                            _this.tapCoreContactManager.unblockUser(userID, callback);
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    }
 }
 
 //   //to encrypt and decrypt
