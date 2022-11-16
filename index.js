@@ -3306,7 +3306,7 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    sendCustomMessage : (messageModel, callback) => {
+    sendCustomMessage : (messageModel, callback, withoutEmit = false) => {
         if(this.taptalk.isAuthenticated()) {
             let emitData = {
                 eventName: SOCKET_NEW_MESSAGE,
@@ -3316,8 +3316,10 @@ exports.tapCoreMessageManager  = {
             this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(messageModel);
 
             callback(messageModel);
-                
-            tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
+            
+            if(!withoutEmit) {
+                tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
+            }
         }
     },
 
