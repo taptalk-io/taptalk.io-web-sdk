@@ -1,7 +1,23 @@
-/* 02-11-2022 15.00  v1.33.0-beta.0 */
+/* 18-11-2022 15:00  v1.32.0 */
 // Changes:
-// 1. Added reportUser to tapCoreContactManager
-// 2. Added reportMessage to tapCoreContactManager
+// 1. Added send custom message without emit
+// 2. Added createScheduledMessage method to tapCoreMessageManager
+// 3. Added fetchScheduledMessages method to tapCoreMessageManager
+// 4. Added sendScheduledMessageNow method to tapCoreMessageManager
+// 5. Added editScheduledMessageTime method to tapCoreMessageManager
+// 6. Added editScheduledMessageContent method to tapCoreMessageManager
+// 7. Added deleteScheduledMessage method to tapCoreMessageManager
+// 8. Added queue for create scheduled message
+// 9. Added onReceiveScheduledMessage callback tapRoomStatusListener
+// 10. Added isScheduled parameter to onReceiveNewMessage callback
+// 11. Added reportUser to tapCoreContactManager
+// 12. Added reportMessage to tapCoreContactManager
+// 13. Added getBlockedUserList to tapCoreContactManager
+// 14. Added getBlockedUserIDs to tapCoreContactManager
+// 15. Added blockUser to tapCoreContactManager
+// 16. Added unblockUser to tapCoreContactManager
+// 17. Fixed crash when quote is empty in constructTapTalkMessageModelWithQuote
+// 18. Fixed getPersonalChatRoomWithUser
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -2102,15 +2118,16 @@ exports.tapCoreRoomListManager = {
         let currentActiveUser = this.taptalk.getTaptalkActiveUser();
         let roomID = "";
 
-        if(_userModel.userID < currentActiveUser) {
+        if (parseInt(_userModel.userID) < parseInt(currentActiveUser.userID)) {
             roomID = _userModel.userID+"-"+currentActiveUser.userID;
-        }else {
+        }
+        else {
             roomID = currentActiveUser.userID+"-"+_userModel.userID;
         }
 
         room.roomID = roomID;
-        room.name = currentActiveUser.fullname;
-        room.imageURL = currentActiveUser.imageURL;
+        room.name = userModel.fullname;
+        room.imageURL = userModel.imageURL;
         room.type = ROOM_TYPE.PERSONAL;
 
         return room;
