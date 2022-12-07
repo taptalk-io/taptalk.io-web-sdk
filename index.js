@@ -1,4 +1,4 @@
-/* 18-11-2022 15:00  v1.32.0-beta.2 */
+/* 07-12-2022 15:00  v1.32.0 */
 // Changes:
 // 1. Added send custom message without emit
 // 2. Added createScheduledMessage method to tapCoreMessageManager
