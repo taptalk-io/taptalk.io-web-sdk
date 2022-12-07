@@ -1140,11 +1140,15 @@ exports.taptalk = {
         return data; 
     },
 
-    init : (appID, appSecret, baseUrlApi) => {
+    init : (appID, appSecret, baseUrlApi, withOutRoomList = false) => {
         authenticationHeader["App-Key"] = btoa(`${appID}:${appSecret}`);
         // authenticationHeader["Server-Key"] = btoa(`${serverID}:${serverSecret}`);
         authenticationHeader["Device-Identifier"] = getDeviceID();
         baseApiUrl = baseUrlApi;
+
+        if(withOutRoomList) {
+            isDoneFirstSetupRoomList = true;
+        }
 
         this.taptalk.refreshProjectConfigs();
     },
