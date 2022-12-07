@@ -1,6 +1,23 @@
-/* 18-10-2022 17:00  v1.31.1 */
+/* 07-12-2022 15:00  v1.32.0 */
 // Changes:
-// 1. Fixed sendEmitWithEditedMessage
+// 1. Added send custom message without emit
+// 2. Added createScheduledMessage method to tapCoreMessageManager
+// 3. Added fetchScheduledMessages method to tapCoreMessageManager
+// 4. Added sendScheduledMessageNow method to tapCoreMessageManager
+// 5. Added editScheduledMessageTime method to tapCoreMessageManager
+// 6. Added editScheduledMessageContent method to tapCoreMessageManager
+// 7. Added deleteScheduledMessage method to tapCoreMessageManager
+// 8. Added queue for create scheduled message
+// 9. Added onReceiveScheduledMessage callback tapRoomStatusListener
+// 10. Added isScheduled parameter to onReceiveNewMessage callback
+// 11. Added reportUser to tapCoreContactManager
+// 12. Added reportMessage to tapCoreContactManager
+// 13. Added getBlockedUserList to tapCoreContactManager
+// 14. Added getBlockedUserIDs to tapCoreContactManager
+// 15. Added blockUser to tapCoreContactManager
+// 16. Added unblockUser to tapCoreContactManager
+// 17. Fixed crash when quote is empty in constructTapTalkMessageModelWithQuote
+// 18. Fixed getPersonalChatRoomWithUser
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -14,6 +31,7 @@ var tapTalkRoomListIDPinned = {}; //room list id pinned
 var tapRoomStatusListeners = [];
 var tapMessageListeners = [];
 var tapRoomListListeners = [];
+var tapContactListeners = [];
 var tapListener = [];
 var taptalkContact = {};
 var tapTalkRandomColors = ['#f99181', '#a914db', '#f26046', '#fb76ab', '#c4c9d1', '#4239be', '#9c89f1', '#f4c22c'];
@@ -203,7 +221,10 @@ const SOCKET_OPEN_MESSAGE = "chat/openMessage";
 const SOCKET_AUTHENTICATION = "user/authentication";
 const SOCKET_USER_ONLINE_STATUS = "user/status";
 const SOCKET_USER_UPDATED = "user/updated";     
+const SOCKET_USER_BLOCKED = "user/block";     
+const SOCKET_USER_UNBLOCKED = "user/unblock";     
 const SOCKET_CLEAR_CHAT_ROOM = "room/clearChat";     
+const SOCKET_SCHEDULED_MESSAGE = "room/scheduleMessage";     
 const CHAT_MESSAGE_TYPE_TEXT = 1001;
 const CHAT_MESSAGE_TYPE_IMAGE = 1002;
 const CHAT_MESSAGE_TYPE_VIDEO = 1003;
@@ -421,6 +442,8 @@ tapReader.onload = function () {
 	var messages = this.result.split('\n');
 	for (let i in messages) {
       var m = JSON.parse(messages[i]);
+
+    //   console.log(m)
       
       if(isDoneFirstSetupRoomList) {
           handleEmit(m);
@@ -429,7 +452,7 @@ tapReader.onload = function () {
       switch(m.eventName) {
         case "chat/sendMessage":
             for(let i in tapMessageListeners) {
-                tapMessageListeners[i].onReceiveNewMessage(m.data);
+                tapMessageListeners[i].onReceiveNewMessage(m.data, m.isScheduled);
             }
             break;
 
@@ -457,9 +480,27 @@ tapReader.onload = function () {
             }
             break;
 
+        case SOCKET_SCHEDULED_MESSAGE:
+            for(let i in tapRoomStatusListeners) {
+                tapRoomStatusListeners[i].onReceiveScheduledMessage(m.data.room, m.data.timestamp);
+            }
+            break;
+
         case SOCKET_CLEAR_CHAT_ROOM:
             for (let i in tapRoomListListeners) {
                 tapRoomListListeners[i].onChatRoomDeleted(m.data.room.roomID);
+            }
+            break;
+
+        case SOCKET_USER_BLOCKED:
+            for (let i in tapContactListeners) {
+                tapContactListeners[i].onContactBlocked(m.data.user);
+            }
+            break;
+
+        case SOCKET_USER_UNBLOCKED:
+            for (let i in tapContactListeners) {
+                tapContactListeners[i].onContactUnblocked(m.data.user);
             }
             break;
       }
@@ -880,6 +921,73 @@ class TapEmitMessageQueue {
 
 var tapEmitMsgQueue = new TapEmitMessageQueue();
 
+class TapScheduledMessageQueue {
+	constructor() {
+		this.scheduledItemQueue = [];
+		this.isRunningScheduledMessageQueue = false;
+	}
+
+	runScheduledMessageQueue() {
+		if (!navigator.onLine || !module.exports.taptalk.isConnected()) {
+			this.isRunningScheduledMessageQueue = false;
+		}
+        else {
+			this.isRunningScheduledMessageQueue = true;
+		}
+
+		if (this.scheduledItemQueue.length > 0 && this.isRunningScheduledMessageQueue) {
+            const message = this.scheduledItemQueue[0].message;
+            const scheduledTime = this.scheduledItemQueue[0].scheduledTime;
+            const callback = this.scheduledItemQueue[0].callback;
+            let handleScheduledMessageFinished = () => {
+                this.scheduledItemQueue.shift();
+                this.runScheduledMessageQueue();
+            }
+            if (scheduledTime > new Date().valueOf()) {
+                module.exports.tapCoreMessageManager.createScheduledMessage(message, scheduledTime, {
+                    onSuccess: (response) => {
+                        callback.onSuccess(response);
+                        handleScheduledMessageFinished();
+                    },
+                    onError: (errCode, errMes) => {
+                        callback.onError(errCode, errMes);
+                        handleScheduledMessageFinished();
+                    }
+                }, false);
+            }
+            else {
+                module.exports.tapCoreMessageManager.sendCustomMessage(message, () => {
+                    callback.onSuccess({
+                        success: false,
+                        message: "Message was sent",
+                        createdItem: message
+                    });
+                    handleScheduledMessageFinished();
+                });
+            }
+		}
+        else {
+			this.isRunningScheduledMessageQueue = false;
+			return;
+		}
+	}
+
+	pushScheduledMessageQueue(message, scheduledTime, callback) {
+        const scheduledItem = {
+            message: message, 
+            scheduledTime: scheduledTime,
+            callback: callback
+        };
+        this.scheduledItemQueue.push(scheduledItem);
+
+		if (!this.isRunningScheduledMessageQueue) {
+			this.runScheduledMessageQueue();
+		}
+	}
+}
+
+var scheduledMessageQueue = new TapScheduledMessageQueue();
+
 //image compress
 var urlToFile = (url, filename, mimeType) => {
 	return (
@@ -1032,11 +1140,15 @@ exports.taptalk = {
         return data; 
     },
 
-    init : (appID, appSecret, baseUrlApi) => {
+    init : (appID, appSecret, baseUrlApi, withOutRoomList = false) => {
         authenticationHeader["App-Key"] = btoa(`${appID}:${appSecret}`);
         // authenticationHeader["Server-Key"] = btoa(`${serverID}:${serverSecret}`);
         authenticationHeader["Device-Identifier"] = getDeviceID();
         baseApiUrl = baseUrlApi;
+
+        if(withOutRoomList) {
+            isDoneFirstSetupRoomList = true;
+        }
 
         this.taptalk.refreshProjectConfigs();
     },
@@ -1149,7 +1261,8 @@ exports.taptalk = {
             
                         webSocket.onopen = function () {
                             callback.onSuccess('Successfully connected to TapTalk.io server');
-                            tapEmitMsgQueue.runEmitQueue();	
+                            tapEmitMsgQueue.runEmitQueue();
+                            scheduledMessageQueue.runScheduledMessageQueue();
                             isFirstConnectedToWebSocket = true;
                         }
                         webSocket.onclose = function () {
@@ -1253,6 +1366,7 @@ exports.taptalk = {
         tapRoomStatusListeners = [];
         tapMessageListeners = [];
         tapRoomListListeners = [];
+        tapContactListeners = [];
         tapListener = [];
         taptalkContact = {};
         projectConfigs = null;
@@ -2008,15 +2122,16 @@ exports.tapCoreRoomListManager = {
         let currentActiveUser = this.taptalk.getTaptalkActiveUser();
         let roomID = "";
 
-        if(_userModel.userID < currentActiveUser) {
+        if (parseInt(_userModel.userID) < parseInt(currentActiveUser.userID)) {
             roomID = _userModel.userID+"-"+currentActiveUser.userID;
-        }else {
+        }
+        else {
             roomID = currentActiveUser.userID+"-"+_userModel.userID;
         }
 
         room.roomID = roomID;
-        room.name = currentActiveUser.fullname;
-        room.imageURL = currentActiveUser.imageURL;
+        room.name = userModel.fullname;
+        room.imageURL = userModel.imageURL;
         room.type = ROOM_TYPE.PERSONAL;
 
         return room;
@@ -3183,11 +3298,14 @@ exports.tapCoreMessageManager  = {
             _MESSAGE_MODEL["quote"]["imageURL"] = quotedMessage.type === CHAT_MESSAGE_TYPE_IMAGE ? (quotedMessage.data.fileURL ? quotedMessage.data.fileURL : "") : CHAT_MESSAGE_TYPE_LINK ? quotedMessage.data.image : "";
             _MESSAGE_MODEL["quote"]["videoURL"] =  quotedMessage.type === CHAT_MESSAGE_TYPE_VIDEO ? (quotedMessage.data.fileURL ? quotedMessage.data.fileURL : "") : "";
             _MESSAGE_MODEL["quote"]["title"] = _quoteTitle;
-        }else {
-            _MESSAGE_MODEL["quote"]["content"] = quoteContent;
-            _MESSAGE_MODEL["quote"]["content"] = encryptKey(_MESSAGE_MODEL["quote"]["content"], _MESSAGE_MODEL["localID"]);
-            _MESSAGE_MODEL["quote"]["imageURL"] = quoteImageUrl;
-            _MESSAGE_MODEL["quote"]["title"] = quoteTitle;
+        }
+        else {
+            _MESSAGE_MODEL["quote"]["content"] = quoteContent ? quoteContent : "";
+            if (quoteContent) {
+                _MESSAGE_MODEL["quote"]["content"] = encryptKey(_MESSAGE_MODEL["quote"]["content"], _MESSAGE_MODEL["localID"]);
+            }
+            _MESSAGE_MODEL["quote"]["imageURL"] = quoteImageUrl ? quoteImageUrl : "";
+            _MESSAGE_MODEL["quote"]["title"] = quoteTitle ? quoteTitle : "";
         }
         //quote
 
@@ -5197,7 +5315,183 @@ exports.tapCoreMessageManager  = {
         }else {
             callback.onError("Worker is not supported");
         }
-    }
+    },
+
+    fetchScheduledMessages : (roomID, callback) => {
+        let url = `${baseApiUrl}/v1/chat/scheduled_message/get_scheduled_list`;
+        let _this = this;
+        
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: roomID})
+                .then(function (response) {
+                    if (response.error.code !== "") {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.fetchScheduledMessages(roomID, callback);
+                        });
+                    }
+                    else {
+                        let scheduledItems = response.data.items;
+                        let scheduledMessages;
+                        for (var i in scheduledItems) {
+                            let message = scheduledItems[i].message;
+                            message.body = decryptKey(message.body, message.localID);
+
+                            if (message.data !== "") {
+                                var messageIndex = message;
+                                messageIndex.data = JSON.parse(decryptKey(messageIndex.data, messageIndex.localID));
+                            }
+
+                            if (message.quote.content !== "") {
+                                var messageIndex = message;
+                                messageIndex.quote.content = decryptKey(messageIndex.quote.content, messageIndex.localID)
+                            }
+
+                            mappedMessage = {...message};
+                            mappedMessage.messageID = scheduledItems[i].id;
+                            mappedMessage.created = scheduledItems[i].scheduledTime;
+                            mappedMessage.isSending = false;
+                            scheduledMessages = Object.assign({[mappedMessage.localID] : mappedMessage}, scheduledMessages);
+                        }
+                        callback.onSuccess(scheduledItems, scheduledMessages);
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    createScheduledMessage : (message, scheduledTime, callback, addToQueue = true) => {
+        if (addToQueue) {
+            scheduledMessageQueue.pushScheduledMessageQueue(message, scheduledTime, callback);
+            return;
+        }
+        let url = `${baseApiUrl}/v1/chat/scheduled_message/create`;
+        let _this = this;
+        
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {message: message, scheduledTime: scheduledTime})
+                .then(function (response) {
+                    if (response.error.code !== "") {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.createScheduledMessage(message, scheduledTime, callback);
+                        });
+                    }
+                    else {
+                        callback.onSuccess(response.data);
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    sendScheduledMessageNow : (scheduledMessageIDs, roomID, callback) => {
+        let url = `${baseApiUrl}/v1/chat/scheduled_message/send_now`;
+        let _this = this;
+        
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {ids: scheduledMessageIDs, roomID: roomID})
+                .then(function (response) {
+                    if (response.error.code !== "") {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.sendScheduledMessageNow(scheduledMessageIDs, roomID, callback);
+                        });
+                    }
+                    else {
+                        callback.onSuccess(response.data);
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    editScheduledMessageTime : (scheduledMessageID, scheduledTime, callback) => {
+        let url = `${baseApiUrl}/v1/chat/scheduled_message/edit_scheduled_time`;
+        let _this = this;
+        
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {id: scheduledMessageID, scheduledTime: scheduledTime})
+                .then(function (response) {
+                    if (response.error.code !== "") {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.editScheduledMessageTime(scheduledMessageID, scheduledTime, callback);
+                        });
+                    }
+                    else {
+                        callback.onSuccess(response.data);
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    editScheduledMessageContent : (scheduledMessageID, updatedMessage, callback) => {
+        let url = `${baseApiUrl}/v1/chat/scheduled_message/edit_content`;
+        let _this = this;
+        
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {id: scheduledMessageID, message: updatedMessage})
+                .then(function (response) {
+                    if (response.error.code !== "") {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.editScheduledMessageContent(scheduledMessageID, scheduledTime, callback);
+                        });
+                    }
+                    else {
+                        callback.onSuccess(response.data);
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    deleteScheduledMessage : (scheduledMessageIDs, roomID, callback) => {
+        let url = `${baseApiUrl}/v1/chat/scheduled_message/delete`;
+        let _this = this;
+        
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {ids: scheduledMessageIDs, roomID: roomID})
+                .then(function (response) {
+                    if (response.error.code !== "") {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.deleteScheduledMessage(scheduledMessageIDs, roomID, callback);
+                        });
+                    }
+                    else {
+                        callback.onSuccess(response.data);
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
 }
 
 //queue upload file
@@ -5253,6 +5547,11 @@ tapUplQueue.setCallback((item) => {
 //queue upload file
 
 exports.tapCoreContactManager  = {
+    
+    addContactListener : (callback) => {	
+        tapContactListeners.push(callback);
+    },
+
     getAllUserContacts : (callback) => {
         let url = `${baseApiUrl}/v1/client/contact/list`;
         let _this = this;
@@ -5442,6 +5741,156 @@ exports.tapCoreContactManager  = {
                 .catch(function (err) {
                     console.error('there was an error!', err);
                     
+                });
+        }
+    },
+
+    reportUser : (userID, category, isOtherCategory, reason, callback) => {
+        let url = `${baseApiUrl}/v1/client/chat_report/submit_user`;
+        let _this = this;
+
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, {userID: userID, category: category, isOtherCategory: isOtherCategory, reason: reason})
+                .then(function (response) {
+                    if (response.error.code === "") {
+                        callback.onSuccess(response.data);
+                    }
+                    else {
+                        _this.taptalk.checkErrorResponse(response, callback, () => {
+                            _this.tapCoreContactManager.reportUser(userID, category, isOtherCategory, reason, callback);
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    reportMessage : (messageID, roomID, category, isOtherCategory, reason, callback) => {
+        let url = `${baseApiUrl}/v1/client/chat_report/submit_message`;
+        let _this = this;
+
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, {messageID: messageID, roomID: roomID, category: category, isOtherCategory: isOtherCategory, reason: reason})
+                .then(function (response) {
+                    if (response.error.code === "") {
+                        callback.onSuccess(response.data);
+                    }
+                    else {
+                        _this.taptalk.checkErrorResponse(response, callback, () => {
+                            _this.tapCoreContactManager.reportMessage(messageID, roomID, category, isOtherCategory, reason, callback);
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    getBlockedUserList : (callback) => {
+        let url = `${baseApiUrl}/v1/client/contact/get_blocked_list`;
+        let _this = this;
+
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, "")
+                .then(function (response) {
+                    if (response.error.code === "" && response.data.blockedContacts) {
+                        callback.onSuccess(response.data.blockedContacts);
+                    }
+                    else {
+                        _this.taptalk.checkErrorResponse(response, callback, () => {
+                            _this.tapCoreContactManager.getBlockedUserList(callback)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    getBlockedUserIDs : (callback) => {
+        let url = `${baseApiUrl}/v1/client/contact/get_blocked_user_ids`;
+        let _this = this;
+
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, "")
+                .then(function (response) {
+                    if (response.error.code === "" && response.data.blockedUserIDs) {
+                        callback.onSuccess(response.data.blockedUserIDs);
+                    }
+                    else {
+                        _this.taptalk.checkErrorResponse(response, callback, () => {
+                            _this.tapCoreContactManager.getBlockedUserIDs(callback)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    blockUser : (userID, callback) => {
+        let url = `${baseApiUrl}/v1/client/contact/block`;
+        let _this = this;
+
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, {userID: userID})
+                .then(function (response) {
+                    if (response.error.code === "") {
+                        callback.onSuccess(response.data);
+                    }
+                    else {
+                        _this.taptalk.checkErrorResponse(response, callback, () => {
+                            _this.tapCoreContactManager.blockUser(userID, callback);
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    unblockUser : (userID, callback) => {
+        let url = `${baseApiUrl}/v1/client/contact/unblock`;
+        let _this = this;
+
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, {userID: userID})
+                .then(function (response) {
+                    if (response.error.code === "") {
+                        callback.onSuccess(response.data);
+                    }
+                    else {
+                        _this.taptalk.checkErrorResponse(response, callback, () => {
+                            _this.tapCoreContactManager.unblockUser(userID, callback);
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
                 });
         }
     }
