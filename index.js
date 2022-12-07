@@ -1,23 +1,9 @@
-/* 07-12-2022 15:00  v1.32.0 */
+/* 07-12-2022 15:00  v1.33.0-beta.0 */
 // Changes:
-// 1. Added send custom message without emit
-// 2. Added createScheduledMessage method to tapCoreMessageManager
-// 3. Added fetchScheduledMessages method to tapCoreMessageManager
-// 4. Added sendScheduledMessageNow method to tapCoreMessageManager
-// 5. Added editScheduledMessageTime method to tapCoreMessageManager
-// 6. Added editScheduledMessageContent method to tapCoreMessageManager
-// 7. Added deleteScheduledMessage method to tapCoreMessageManager
-// 8. Added queue for create scheduled message
-// 9. Added onReceiveScheduledMessage callback tapRoomStatusListener
-// 10. Added isScheduled parameter to onReceiveNewMessage callback
-// 11. Added reportUser to tapCoreContactManager
-// 12. Added reportMessage to tapCoreContactManager
-// 13. Added getBlockedUserList to tapCoreContactManager
-// 14. Added getBlockedUserIDs to tapCoreContactManager
-// 15. Added blockUser to tapCoreContactManager
-// 16. Added unblockUser to tapCoreContactManager
-// 17. Fixed crash when quote is empty in constructTapTalkMessageModelWithQuote
-// 18. Fixed getPersonalChatRoomWithUser
+// 1. message read by and delivered to
+// 2. getTotalReadCount
+// 3. fetchTotalReadCount
+// 4. fetchMessageInfo
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -47,6 +33,7 @@ var taptalkUnreadMessageList = {};
 var taptalkPinnedMessageHashmap = {};
 var taptalkPinnedMessageIDHashmap = {};
 var taptalkIndexedDBNotSupport = "Your browser doesn't support a stable version of IndexedDB. Such and such feature will not be available.";
+var taptalkMessageReadCount = {};
 
 const MAX_PINNED_ROOM = 10;
 
@@ -5492,6 +5479,65 @@ exports.tapCoreMessageManager  = {
                 });
         }
     },
+
+    fetchTotalReadCount : (messageID, callback) => {
+        let url = `${baseApiUrl}/v1/chat/message/get_total_read`;
+        let _this = this;
+        
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {messageID: messageID})
+                .then(function (response) {
+                    if (response.error.code !== "") {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.fetchTotalReadCount(messageID, callback);
+                        });
+                    }
+                    else {
+                        taptalkMessageReadCount[messageID] = response.data.count;
+                        callback.onSuccess(taptalkMessageReadCount[messageID]);
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    },
+
+    getTotalReadCount : (messageID, callback) => {
+        if(typeof taptalkMessageReadCount[messageID] !== "undefined") {
+            callback.onSuccess(taptalkMessageReadCount[messageID]);
+        }
+        
+        this.tapCoreMessageManager.fetchTotalReadCount(messageID, callback)
+    },
+
+    fetchMessageInfo : (messageID, callback) => {
+        let url = `${baseApiUrl}/v1/chat/message/get_details`;
+        let _this = this;
+        
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+    
+            doXMLHTTPRequest('POST', authenticationHeader, url, {messageID: messageID})
+                .then(function (response) {
+                    if (response.error.code !== "") {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreMessageManager.fetchMessageInfo(messageID, callback);
+                        });
+                    }
+                    else {
+                        callback.onSuccess(response.data);
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+    }
 }
 
 //queue upload file
