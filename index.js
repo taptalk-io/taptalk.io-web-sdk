@@ -714,6 +714,11 @@ var handleNewMessage = (message) => {
         console.log("Worker is not supported");
     }
     //handle pin - unpin
+
+    if (message.room && tapTalkRoomListHashmap[message.room.roomID] && (message.action === "user/update" || message.action === "room/update")) {
+        // Handle room update
+        tapTalkRoomListHashmap[message.room.roomID].lastMessage.room = message.room;
+    }
 }
 
 var handleUpdateMessage = (message) => {
