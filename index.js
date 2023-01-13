@@ -2095,6 +2095,9 @@ exports.tapCoreRoomListManager = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {xcRoomID: xcRoomID})
                 .then(function (response) {
                     if(response.error.code === "") {
+                        if (response.data.room && tapTalkRoomListHashmap[xcRoomID]) {
+                            tapTalkRoomListHashmap[xcRoomID].lastMessage.room = response.data.room;
+                        }
                         callback.onSuccess(response.data);
                     }else {
                         _this.taptalk.checkErrorResponse(response, callback, () => {
@@ -2627,6 +2630,9 @@ exports.tapCoreChatRoomManager = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: groupId})
                 .then(function (response) {
                     if(response.error.code === "") {
+                        if (response.data.room && tapTalkRoomListHashmap[groupId]) {
+                            tapTalkRoomListHashmap[groupId].lastMessage.room = response.data.room;
+                        }
                         callback.onSuccess(response.data);
                     }else {
                         _this.taptalk.checkErrorResponse(response, callback, () => {
