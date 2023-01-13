@@ -4969,7 +4969,9 @@ exports.tapCoreMessageManager  = {
                             taptalkPinnedMessageHashmap[roomID].pageNumber =  !taptalkPinnedMessageHashmap[roomID].pageNumber ? (resHasMore ? 2 : 1) : (resHasMore ? (taptalkPinnedMessageHashmap[roomID].pageNumber + 1) : taptalkPinnedMessageHashmap[roomID].pageNumber);
                             
                             _this.taptalkHelper.orderArrayFromLargestToSmallest(taptalkPinnedMessageHashmap[roomID].messages, "created", "desc", (new_arr) => {
-                                taptalkPinnedMessageHashmap[roomID].messages = new_arr;
+                                if (taptalkPinnedMessageHashmap[roomID]) {
+                                    taptalkPinnedMessageHashmap[roomID].messages = new_arr;
+                                }
                                 callback.onSuccess(taptalkPinnedMessageHashmap[roomID]);
                             });
                         }else {
@@ -5913,6 +5915,13 @@ exports.tapCoreContactManager  = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {userID: userID})
                 .then(function (response) {
                     if (response.error.code === "") {
+                        for (let i in taptalkContact) {
+                            if (taptalkContact[i].user.userID === userID) {
+                                // Remove from contacts
+                                taptalkContact.splice(i, 1);
+                                break;
+                            }
+                        }
                         callback.onSuccess(response.data);
                     }
                     else {
@@ -5938,7 +5947,16 @@ exports.tapCoreContactManager  = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {userID: userID})
                 .then(function (response) {
                     if (response.error.code === "") {
-                        callback.onSuccess(response.data);
+                        // Sync contacts
+                        module.exports.tapCoreContactManager.getAllUserContacts({
+                            onSuccess: () => {
+                                callback.onSuccess(response.data);
+                            },
+                    
+                            onError: (errorCode, errorMessage) => {
+                                callback.onSuccess(response.data);
+                            }
+                        });
                     }
                     else {
                         _this.taptalk.checkErrorResponse(response, callback, () => {
