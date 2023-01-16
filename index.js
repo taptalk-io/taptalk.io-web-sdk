@@ -1,9 +1,10 @@
-/* 07-12-2022 15:00  v1.33.0-beta.0 */
+/* 09-12-2022 15:00  v1.33.0-beta.1 */
 // Changes:
 // 1. message read by and delivered to
 // 2. getTotalReadCount
 // 3. fetchTotalReadCount
 // 4. fetchMessageInfo
+// 5. fetchGroupInCommon
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -3027,6 +3028,31 @@ exports.tapCoreChatRoomManager = {
                         });
 						callback.onSuccess(response.data.clearedRoomIDs);
                     };
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                    callback.onError(err);
+                });
+        }
+    },
+
+    fetchGroupInCommon : (userID, callback) => {
+        let url = `${baseApiUrl}/v1/client/room/groups_in_common`;
+        let _this = this;
+
+        if(this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            doXMLHTTPRequest('POST', authenticationHeader, url, {userID: userID})
+                .then(function (response) {
+                    if (response.error.code === "") {
+                        callback.onSuccess(response.data.rooms);
+                    }else {
+                        _this.taptalk.checkErrorResponse(response, null, () => {
+                            _this.tapCoreChatRoomManager.fetchGroupInCommon(userID, callback);
+                        });
+                    }
                 })
                 .catch(function (err) {
                     console.error('there was an error!', err);
