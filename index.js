@@ -715,6 +715,11 @@ var handleNewMessage = (message) => {
         console.log("Worker is not supported");
     }
     //handle pin - unpin
+
+    if (message.room && tapTalkRoomListHashmap[message.room.roomID] && (message.action === "user/update" || message.action === "room/update")) {
+        // Handle room update
+        tapTalkRoomListHashmap[message.room.roomID].lastMessage.room = message.room;
+    }
 }
 
 var handleUpdateMessage = (message) => {
@@ -2091,6 +2096,9 @@ exports.tapCoreRoomListManager = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {xcRoomID: xcRoomID})
                 .then(function (response) {
                     if(response.error.code === "") {
+                        if (response.data.room && tapTalkRoomListHashmap[xcRoomID]) {
+                            tapTalkRoomListHashmap[xcRoomID].lastMessage.room = response.data.room;
+                        }
                         callback.onSuccess(response.data);
                     }else {
                         _this.taptalk.checkErrorResponse(response, callback, () => {
@@ -2623,6 +2631,9 @@ exports.tapCoreChatRoomManager = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {roomID: groupId})
                 .then(function (response) {
                     if(response.error.code === "") {
+                        if (response.data.room && tapTalkRoomListHashmap[groupId]) {
+                            tapTalkRoomListHashmap[groupId].lastMessage.room = response.data.room;
+                        }
                         callback.onSuccess(response.data);
                     }else {
                         _this.taptalk.checkErrorResponse(response, callback, () => {
@@ -4984,7 +4995,9 @@ exports.tapCoreMessageManager  = {
                             taptalkPinnedMessageHashmap[roomID].pageNumber =  !taptalkPinnedMessageHashmap[roomID].pageNumber ? (resHasMore ? 2 : 1) : (resHasMore ? (taptalkPinnedMessageHashmap[roomID].pageNumber + 1) : taptalkPinnedMessageHashmap[roomID].pageNumber);
                             
                             _this.taptalkHelper.orderArrayFromLargestToSmallest(taptalkPinnedMessageHashmap[roomID].messages, "created", "desc", (new_arr) => {
-                                taptalkPinnedMessageHashmap[roomID].messages = new_arr;
+                                if (taptalkPinnedMessageHashmap[roomID]) {
+                                    taptalkPinnedMessageHashmap[roomID].messages = new_arr;
+                                }
                                 callback.onSuccess(taptalkPinnedMessageHashmap[roomID]);
                             });
                         }else {
@@ -5928,6 +5941,13 @@ exports.tapCoreContactManager  = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {userID: userID})
                 .then(function (response) {
                     if (response.error.code === "") {
+                        for (let i in taptalkContact) {
+                            if (taptalkContact[i].user.userID === userID) {
+                                // Remove from contacts
+                                taptalkContact.splice(i, 1);
+                                break;
+                            }
+                        }
                         callback.onSuccess(response.data);
                     }
                     else {
@@ -5953,7 +5973,16 @@ exports.tapCoreContactManager  = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {userID: userID})
                 .then(function (response) {
                     if (response.error.code === "") {
-                        callback.onSuccess(response.data);
+                        // Sync contacts
+                        module.exports.tapCoreContactManager.getAllUserContacts({
+                            onSuccess: () => {
+                                callback.onSuccess(response.data);
+                            },
+                    
+                            onError: (errorCode, errorMessage) => {
+                                callback.onSuccess(response.data);
+                            }
+                        });
                     }
                     else {
                         _this.taptalk.checkErrorResponse(response, callback, () => {
