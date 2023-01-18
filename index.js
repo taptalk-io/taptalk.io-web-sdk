@@ -5973,16 +5973,18 @@ exports.tapCoreContactManager  = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {userID: userID})
                 .then(function (response) {
                     if (response.error.code === "") {
-                        // Sync contacts
-                        module.exports.tapCoreContactManager.getAllUserContacts({
-                            onSuccess: () => {
-                                callback.onSuccess(response.data);
-                            },
+                        callback.onSuccess(response.data);
+                        // // Sync contacts
+                        // module.exports.tapCoreContactManager.getAllUserContacts({
+                        //     onSuccess: () => {
+                        //         callback.onSuccess(response.data);
+                        //         console.log("unblockUser", taptalkContact);
+                        //     },
                     
-                            onError: (errorCode, errorMessage) => {
-                                callback.onSuccess(response.data);
-                            }
-                        });
+                        //     onError: (errorCode, errorMessage) => {
+                        //         callback.onSuccess(response.data);
+                        //     }
+                        // });
                     }
                     else {
                         _this.taptalk.checkErrorResponse(response, callback, () => {
