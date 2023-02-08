@@ -1,10 +1,6 @@
-/* 17-01-2023 12:00  v1.33.0 */
+/* 08-02-2023 12:00  v1.33.1 */
 // Changes:
-// 1. message read by and delivered to
-// 2. getTotalReadCount
-// 3. fetchTotalReadCount
-// 4. fetchMessageInfo
-// 5. fetchGroupInCommon
+// 1. repair send typing and stop typing
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -2411,7 +2407,9 @@ exports.tapCoreChatRoomManager = {
             }
         };
 
-        webSocket.send(JSON.stringify(emitData));
+        if(this.taptalk.isConnected()) {
+            webSocket.send(JSON.stringify(emitData));
+        }
     },
 
     sendStopTypingEmit : async (roomID) => {
@@ -2423,7 +2421,9 @@ exports.tapCoreChatRoomManager = {
             }
         };
 
-        webSocket.send(JSON.stringify(emitData));
+        if(this.taptalk.isConnected()) {
+            webSocket.send(JSON.stringify(emitData));
+        }
     },
 
     addRoomStatusListener : (callback) => {
