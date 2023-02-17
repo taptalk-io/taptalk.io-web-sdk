@@ -1,10 +1,6 @@
-/* 17-01-2023 12:00  v1.33.0 */
+/* 17-02-2023 18:00  v1.34.0 */
 // Changes:
-// 1. message read by and delivered to
-// 2. getTotalReadCount
-// 3. fetchTotalReadCount
-// 4. fetchMessageInfo
-// 5. fetchGroupInCommon
+// 1. repair send message queue
 
 var define, CryptoJS;
 var crypto = require('crypto');
@@ -866,11 +862,16 @@ class TapMessageQueue {
             this.callback(this.queue.shift());
         } else if (!stopIfEmpty) {
             setTimeout(() => {
-                this.processNext();
+                if(this.queue.length > 0) {
+                    this.processNext();
+                }else {
+                    this.isRunning = false;
+                }
             }, 100);
-        } else {
-            this.isRunning = false;
-        }
+        } 
+        // else {
+        //     this.isRunning = false;
+        // }
     }
 }
 
@@ -1255,6 +1256,11 @@ exports.taptalk = {
                         webSocket.onopen = function () {
                             callback.onSuccess('Successfully connected to TapTalk.io server');
                             tapEmitMsgQueue.runEmitQueue();
+
+                            if(tapUplQueue.queue.length > 0) {
+                                tapUplQueue.processNext();
+                            }
+                            
                             scheduledMessageQueue.runScheduledMessageQueue();
                             isFirstConnectedToWebSocket = true;
                         }
@@ -3970,7 +3976,7 @@ exports.tapCoreMessageManager  = {
                                         
                                         tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
                                     }
-    
+                                    
                                     tapUplQueue.processNext();
                                 }
                             },
@@ -5604,9 +5610,11 @@ class TapUploadQueue {
         } 
         this.queue.push(generateNewUploadObject());
 
-        if (!this.isRunning) {
-            this.isRunning = true;
-            this.processNext();
+        if(navigator.onLine && exports.taptalk.isConnected()) {
+            if (!this.isRunning) {
+                this.isRunning = true;
+                this.processNext();
+            }
         }
     }
     
@@ -5615,11 +5623,16 @@ class TapUploadQueue {
             this.callback(this.queue.shift());
         } else if (!stopIfEmpty) {
             setTimeout(() => {
-                this.processNext();
+                if(this.queue.length > 0) {
+                    this.processNext();
+                }else {
+                    this.isRunning = false;
+                }
             }, 100);
-        } else {
-            this.isRunning = false;
-        }
+        } 
+        // else {
+        //     this.isRunning = false;
+        // }
     }
 }
 
@@ -5632,7 +5645,6 @@ tapUplQueue.setCallback((item) => {
 //queue upload file
 
 exports.tapCoreContactManager  = {
-    
     addContactListener : (callback) => {	
         tapContactListeners.push(callback);
     },
@@ -5973,16 +5985,18 @@ exports.tapCoreContactManager  = {
             doXMLHTTPRequest('POST', authenticationHeader, url, {userID: userID})
                 .then(function (response) {
                     if (response.error.code === "") {
-                        // Sync contacts
-                        module.exports.tapCoreContactManager.getAllUserContacts({
-                            onSuccess: () => {
-                                callback.onSuccess(response.data);
-                            },
+                        callback.onSuccess(response.data);
+                        // // Sync contacts
+                        // module.exports.tapCoreContactManager.getAllUserContacts({
+                        //     onSuccess: () => {
+                        //         callback.onSuccess(response.data);
+                        //         console.log("unblockUser", taptalkContact);
+                        //     },
                     
-                            onError: (errorCode, errorMessage) => {
-                                callback.onSuccess(response.data);
-                            }
-                        });
+                        //     onError: (errorCode, errorMessage) => {
+                        //         callback.onSuccess(response.data);
+                        //     }
+                        // });
                     }
                     else {
                         _this.taptalk.checkErrorResponse(response, callback, () => {
