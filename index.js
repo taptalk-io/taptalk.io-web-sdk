@@ -1,9 +1,11 @@
-/* 17-02-2023 18:00  v1.34.0 */
+/* 15-03-2023 18:00  v1.35.0 */
 // Changes:
-// 1. repair send message queue
+// 1. change crypto lib
 
+// var crypto = require('crypto');
 var define, CryptoJS;
-var crypto = require('crypto');
+// var crypto = require('crypto');
+var CryptoJS = require('./lib/crypto-js');
 var md5 = require('./lib/md5');
 var tapTalkRooms = {}; //room list with array of messages
 var tapTalkRoomListHashmap = {}; //room list last message
@@ -31,7 +33,6 @@ var taptalkPinnedMessageHashmap = {};
 var taptalkPinnedMessageIDHashmap = {};
 var taptalkIndexedDBNotSupport = "Your browser doesn't support a stable version of IndexedDB. Such and such feature will not be available.";
 var taptalkMessageReadCount = {};
-
 const MAX_PINNED_ROOM = 10;
 
 var db;
@@ -6011,52 +6012,89 @@ exports.tapCoreContactManager  = {
     }
 }
 
-//   //to encrypt and decrypt
-var PKCS7Encoder = {};
+//to encrypt and decrypt
+// var PKCS7Encoder = {};
 
-PKCS7Encoder.decode = function(text) {
-    var pad = text[text.length - 1];
+// PKCS7Encoder.decode = function(text) {
+//     var pad = text[text.length - 1];
 
-    if (pad < 1 || pad > 16) {
-        pad = 0;
-    }
+//     if (pad < 1 || pad > 16) {
+//         pad = 0;
+//     }
 
-    return text.slice(0, text.length - pad);
-};
+//     return text.slice(0, text.length - pad);
+// };
 
-PKCS7Encoder.encode = function(text) {
-    var blockSize = 16;
-    var textLength = text.length;
-    var amountToPad = blockSize - (textLength % blockSize);
+// PKCS7Encoder.encode = function(text) {
+//     var blockSize = 16;
+//     var textLength = text.length;
+//     var amountToPad = blockSize - (textLength % blockSize);
 
-    var result = new Buffer(amountToPad);
-    result.fill(amountToPad);
+//     var result = new Buffer(amountToPad);
+//     result.fill(amountToPad);
 
-    return Buffer.concat([text, result]);
-};
+//     return Buffer.concat([text, result]);
+// };
 
-function encrypt(text, key) {
-    var encoded = PKCS7Encoder.encode(new Buffer(text));
-    key = crypto.createHash('sha256').update(key).digest();
-    var iv = new Buffer(16);
-    iv.fill(0);
-    var cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-    cipher.setAutoPadding(false);
-    var cipheredMsg = Buffer.concat([cipher.update(encoded), cipher.final()]);
-    return cipheredMsg.toString('base64');
-};
+// function encrypt(text, key) {
+//     var encoded = PKCS7Encoder.encode(new Buffer(text));
+//     key = crypto.createHash('sha256').update(key).digest();
+//     var iv = new Buffer(16);
+//     iv.fill(0);
+//     var cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+//     cipher.setAutoPadding(false);
+//     var cipheredMsg = Buffer.concat([cipher.update(encoded), cipher.final()]);
+//     return cipheredMsg.toString('base64');
+// };
 
-function decrypt(text, key) {
-    key = crypto.createHash('sha256').update(key).digest();
-    var iv = new Buffer(16);
-    iv.fill(0);
-    var decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-    decipher.setAutoPadding(false);
-    var deciphered = Buffer.concat([decipher.update(text, 'base64'), decipher.final()]);
-    deciphered = PKCS7Encoder.decode(deciphered);
-    return deciphered.toString();
-};
-//   //to encrypt and decrypt
+// function decrypt(text, key) {
+//     key = crypto.createHash('sha256').update(key).digest();
+//     var iv = new Buffer(16);
+//     iv.fill(0);
+//     var decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+//     decipher.setAutoPadding(false);
+//     var deciphered = Buffer.concat([decipher.update(text, 'base64'), decipher.final()]);
+//     deciphered = PKCS7Encoder.decode(deciphered);
+//     return deciphered.toString();
+// };
+//to encrypt and decrypt
+
+//to encrypt and decrypt 2
+function getAesString(data, key, iv) {
+    var key_hash = CryptoJS.SHA256(key);
+    var key = CryptoJS.enc.Utf8.parse(key_hash);
+    var iv = new Uint8Array(16);
+    var encrypted = CryptoJS.AES.encrypt(data, key_hash,
+        {
+            iv: byteArrayToWordArray(iv),
+            mode: CryptoJS.mode.CBC,
+        });
+    return encrypted.toString();
+}
+
+
+function getDeAesString(data, key, iv) {
+    var key_hash = CryptoJS.SHA256(key);
+    var key = CryptoJS.enc.Utf8.parse(key_hash); 
+    var iv = new Uint8Array(16);
+    var decrypted = CryptoJS.AES.decrypt(data, key_hash,
+        {
+            iv: byteArrayToWordArray(iv),
+            mode: CryptoJS.mode.CBC,
+        });
+    return decrypted.toString(CryptoJS.enc.Utf8);
+}
+
+function byteArrayToWordArray(ba) {
+	var wa = [],
+		i;
+	for (i = 0; i < ba.length; i++) {
+		wa[(i / 4) | 0] |= ba[i] << (24 - 8 * i);
+	}
+
+	return CryptoJS.lib.WordArray.create(wa, ba.length);
+}
+//to encrypt and decrypt 2
 
 //   //Encryption Flow
 //   // 1. Obtain message length, local ID length
@@ -6092,7 +6130,8 @@ function decrypt(text, key) {
       let localIDIndex = stringLength % localIDLength;
 
       let saltString = localID.substring(localIDIndex, localIDIndex+1);
-      let encryptedString = encrypt(text, password);
+      let encryptedString = getAesString(text, password);
+      
 
       let randomNumber = Math.floor(Math.random() * 8) + 1;
       let encryptedStringLength = encryptedString.length;
@@ -6145,7 +6184,7 @@ function decrypt(text, key) {
           return null;
       }
 
-      let decryptedString = decrypt(encryptedStringModified, password);
+      let decryptedString = getDeAesString(encryptedStringModified, password);
 
       return decryptedString
   }
