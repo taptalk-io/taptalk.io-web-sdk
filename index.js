@@ -1,6 +1,6 @@
-/* 15-03-2023 18:00  v1.35.0 */
+/* 16-03-2023 22:00  v1.35.1 */
 // Changes:
-// 1. change crypto lib
+// 1. repair authenticateWithAuthTicket
 
 // var crypto = require('crypto');
 var define, CryptoJS;
@@ -1206,7 +1206,7 @@ exports.taptalk = {
 
                         callback.onSuccess('Request access token success');
                         
-                        connectOnSuccess && _this.testAccessToken(callback);
+                        connectOnSuccess && _this.taptalk.testAccessToken(callback);
                     }else {
                         callback.onError(response.error.code, response.error.message);
                     }
