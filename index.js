@@ -1,6 +1,6 @@
-/* 16-03-2023 22:00  v1.35.1 */
+/* 18-04-2023 18:00  v1.36.0 */
 // Changes:
-// 1. repair authenticateWithAuthTicket
+// 1. tapCoreChatRoomManager.changeMessageStatus
 
 // var crypto = require('crypto');
 var define, CryptoJS;
@@ -497,7 +497,7 @@ tapReader.onload = function () {
 function handleEmit(emit) {
 	switch(emit.eventName) {
 		case "chat/sendMessage":
-				handleNewMessage(emit.data)
+				handleNewMessage(emit.data);
 				break;
 
 		case "chat/updateMessage":
@@ -2391,6 +2391,35 @@ exports.tapCoreRoomListManager = {
 // const USER = this.taptalk.getTaptalkActiveUser();  
 
 exports.tapCoreChatRoomManager = {
+    changeMessageStatus : (roomID, message, callback) => {
+        let _taptalkRooms = {...tapTalkRooms};
+        let _tapTalkRoomListHashmapPinned = {...tapTalkRoomListHashmapPinned};
+        let _tapTalkRoomListHashmapUnPinned = {...tapTalkRoomListHashmapUnPinned};
+
+        if(_taptalkRooms[roomID]) {
+            _taptalkRooms[roomID].messages[message.localID] = message;
+            tapTalkRooms = _taptalkRooms;
+        }
+
+        if(_tapTalkRoomListHashmapPinned[roomID]) {
+            if(_tapTalkRoomListHashmapPinned[roomID].lastMessage[message.localID] === message.localID) {
+                _tapTalkRoomListHashmapPinned[roomID].lastMessage[message.localID] = message;
+                tapTalkRoomListHashmapPinned = _tapTalkRoomListHashmapPinned;
+            }
+        }
+
+        if(_tapTalkRoomListHashmapUnPinned[roomID]) {
+            if(_tapTalkRoomListHashmapUnPinned[roomID].lastMessage[message.localID] === message.localID) {
+                _tapTalkRoomListHashmapUnPinned[roomID].lastMessage[message.localID] = message;
+                tapTalkRoomListHashmapUnPinned = _tapTalkRoomListHashmapUnPinned;
+            }
+        }
+
+        tapTalkRoomListHashmap = Object.assign({...tapTalkRoomListHashmapPinned}, {...tapTalkRoomListHashmapUnPinned});
+
+        callback(tapTalkRooms, tapTalkRoomListHashmap);
+    },
+
     getAllRooms : () => {
         return tapTalkRooms;
     },
