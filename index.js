@@ -1,6 +1,6 @@
-/* 18-04-2023 18:00  v1.36.0 */
+/* 04-09-2023 18:00  v1.37.0 */
 // Changes:
-// 1. tapCoreChatRoomManager.changeMessageStatus
+// 1. repair upload fail
 
 // var crypto = require('crypto');
 var define, CryptoJS;
@@ -3859,6 +3859,8 @@ exports.tapCoreMessageManager  = {
                         _this.taptalk.checkErrorResponse(response, callback, () => {
                             _this.tapCoreMessageManager.uploadChatFile(data, callback)
                         });
+
+                        tapUplQueue.processNext();
                     }
                 })
                 .catch(function (err) {
