@@ -1,4 +1,4 @@
-/* 21-06-2024 18:00  v1.37.1 */
+/* 27-06-2024 22:00  v1.37.2 */
 
 // 1.37.0 before webworker - delivered and read
 
@@ -4622,7 +4622,6 @@ exports.tapCoreMessageManager  = {
         if(this.taptalk.isAuthenticated()) {
             let userData = getLocalStorageObject('TapTalk.UserData');
             authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
-            authenticationHeader["Content-Type"] = "application/json";
 
             httpRequestMessageFeedbackWorker.postMessage({
                 header: authenticationHeader,
@@ -4734,7 +4733,6 @@ exports.tapCoreMessageManager  = {
         if(this.taptalk.isAuthenticated()) {
             let userData = getLocalStorageObject('TapTalk.UserData');
             authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
-            authenticationHeader["Content-Type"] = "application/json";
 
             httpRequestMessageFeedbackWorker.postMessage({
                 header: authenticationHeader,
@@ -6247,12 +6245,13 @@ function byteArrayToWordArray(ba) {
 if(window.Worker) {
     var httpRequestMessageFeedbackWorker = new WebWorker(() => self.addEventListener('message', function(e) {
         let {header, param, method, url, isClose, type} = e.data;
+        let _header = JSON.parse(JSON.stringify(header));
+        _header["Content-Type"] = "application/json";
 
-        
         if(!isClose) {
             fetch(url, {
                 method: method,
-                headers: header,
+                headers: _header,
                 body: param
             })
             .then(function(response) {
