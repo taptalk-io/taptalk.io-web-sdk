@@ -1,6 +1,9 @@
-/* 04-09-2023 18:00  v1.37.0 */
+/* 21-06-2024 18:00  v1.37.1 */
+
+// 1.37.0 before webworker - delivered and read
+
 // Changes:
-// 1. repair upload fail
+// 1. webworker - delivered and read
 
 // var crypto = require('crypto');
 var define, CryptoJS;
@@ -4619,16 +4622,26 @@ exports.tapCoreMessageManager  = {
         if(this.taptalk.isAuthenticated()) {
             let userData = getLocalStorageObject('TapTalk.UserData');
             authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+            authenticationHeader["Content-Type"] = "application/json";
 
-            doXMLHTTPRequest('POST', authenticationHeader, url, {messageIDs: message})
-                .then(function (response) {
-                    _this.taptalk.checkErrorResponse(response, null, () => {
-                        _this.tapCoreMessageManager.markMessageAsRead(message)
-                    });
-                })
-                .catch(function (err) {
-                    console.error('there was an error!', err);
-                });
+            httpRequestMessageFeedbackWorker.postMessage({
+                header: authenticationHeader,
+                url: url,
+                method: "POST",
+                param: JSON.stringify({messageIDs: message}),
+                type: "read",
+                isClose: false
+            })
+
+            // doXMLHTTPRequest('POST', authenticationHeader, url, {messageIDs: message})
+            //     .then(function (response) {
+            //         _this.taptalk.checkErrorResponse(response, null, () => {
+            //             _this.tapCoreMessageManager.markMessageAsRead(message)
+            //         });
+            //     })
+            //     .catch(function (err) {
+            //         console.error('there was an error!', err);
+            //     });
         }
     },
 
@@ -4721,16 +4734,26 @@ exports.tapCoreMessageManager  = {
         if(this.taptalk.isAuthenticated()) {
             let userData = getLocalStorageObject('TapTalk.UserData');
             authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+            authenticationHeader["Content-Type"] = "application/json";
 
-            doXMLHTTPRequest('POST', authenticationHeader, url, {messageIDs: message})
-                .then(function (response) {
-                    _this.taptalk.checkErrorResponse(response, null, () => {
-                        _this.tapCoreMessageManager.markMessageAsDelivered(message)
-                    });
-                })
-                .catch(function (err) {
-                    console.error('there was an error!', err);
-                });
+            httpRequestMessageFeedbackWorker.postMessage({
+                header: authenticationHeader,
+                url: url,
+                method: "POST",
+                param: JSON.stringify({messageIDs: message}),
+                type: "delivered",
+                isClose: false
+            })
+
+            // doXMLHTTPRequest('POST', authenticationHeader, url, {messageIDs: message})
+            //     .then(function (response) {
+            //         _this.taptalk.checkErrorResponse(response, null, () => {
+            //             _this.tapCoreMessageManager.markMessageAsDelivered(message)
+            //         });
+            //     })
+            //     .catch(function (err) {
+            //         console.error('there was an error!', err);
+            //     });
         }
     },
 	
@@ -6219,3 +6242,51 @@ function byteArrayToWordArray(ba) {
 
       return decryptedString
   }
+
+///worker http request
+if(window.Worker) {
+    var httpRequestMessageFeedbackWorker = new WebWorker(() => self.addEventListener('message', function(e) {
+        let {header, param, method, url, isClose, type} = e.data;
+
+        
+        if(!isClose) {
+            fetch(url, {
+                method: method,
+                headers: header,
+                body: param
+            })
+            .then(function(response) {
+                return response.json(); // .text();
+            })
+            .then(function(myJson) {
+                self.postMessage({
+                    result: {
+                        jsonRes: myJson,
+                        type: type,
+                        param: param
+                    }
+                })
+            });
+
+        }else {
+            self.close();
+        }
+    }))
+
+    httpRequestMessageFeedbackWorker.addEventListener('message', (e) => {
+        let { jsonRes, type, param } = e.data.result;
+
+        if(type === "delivered") {
+            this.taptalk.checkErrorResponse(jsonRes, null, () => {
+                this.tapCoreMessageManager.markMessageAsDelivered(JSON.parse(param))
+            });
+        }
+        
+        if(type === "read") {
+            this.taptalk.checkErrorResponse(jsonRes, null, () => {
+                this.tapCoreMessageManager.markMessageAsRead(JSON.parse(param))
+            });
+        }
+    });
+}
+///worker http request
