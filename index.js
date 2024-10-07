@@ -1,9 +1,8 @@
-/* 04-07-2024 22:00  v1.37.3 */
-
-// 1.37.0 before webworker - delivered and read
+/* 29-08-2024 22:00  v1.38.0 */
 
 // Changes:
-// 1. handle without roomlist
+// 1. send location
+// 2. ws - wss
 
 // var crypto = require('crypto');
 var define, CryptoJS;
@@ -1256,7 +1255,19 @@ exports.taptalk = {
                 onSuccess: () => {
                     if (window["WebSocket"]) {
                         authenticationHeader["Authorization"] = `Bearer ${getLocalStorageObject('TapTalk.UserData').accessToken}`;
-                        var url = `wss://${baseApiUrl.replace('https://', '')}/connect?${generateHeaderQuerystring()}`;
+
+                        var protocol = "";
+
+						protocol = baseApiUrl.includes("https") ? "https" : "http";
+
+						var url = ``;
+
+						if(protocol === "https") {
+							url = `wss://${baseApiUrl.replace('https://', '')}/connect?${generateHeaderQuerystring()}`
+						}else {
+							url = `ws://${baseApiUrl.replace('http://', '')}/connect?${generateHeaderQuerystring()}`;
+						}
+
                         webSocket = new WebSocket(url);
             
                         webSocket.onopen = function () {
@@ -3782,7 +3793,7 @@ exports.tapCoreMessageManager  = {
         tapEmitMsgQueue.pushEmitQueue(JSON.stringify(emitData));
     },
 
-    sendLocationMessage : (latitude, longitude, address, room, callback, quotedMessage = false, forwardOnly = false, quoteTitle = false) => {
+    sendLocationMessage : (latitude, longitude, address, room, callback, quotedMessage = false, forwardMessage = false, forwardOnly = false, quoteTitle = false) => {
         if(this.taptalk.isAuthenticated()) {
             let bodyValueLocation = `📍 Location`; 
 			let data =  {
@@ -3823,6 +3834,43 @@ exports.tapCoreMessageManager  = {
 
             if(forwardMessage && !forwardOnly) {
                 this.tapCoreMessageManager.sendLocationMessage(latitude, longitude, address, room, callback, quotedMessage, forwardMessage, forwardOnly, quoteTitle);
+            }
+        }
+    },
+
+    sendLocationMessageWithoutEmit : (latitude, longitude, address, room, callback, quotedMessage = false, forwardMessage = false, forwardOnly = false, quoteTitle = false) => {
+        if(this.taptalk.isAuthenticated()) {
+            let bodyValueLocation = `📍 Location`; 
+			let data =  {
+                latitude: latitude,
+                longitude: longitude,
+                address: address			
+            };
+
+            let _MESSAGE_MODEL = quotedMessage ? 
+                this.tapCoreMessageManager.constructTapTalkMessageModelWithQuote(bodyValueLocation, room, CHAT_MESSAGE_TYPE_LOCATION, data, quotedMessage, null, quoteTitle, false, false)
+                :
+                forwardMessage ?
+                    this.tapCoreMessageManager.constructTapTalkMessageModel(forwardMessage.body, room, forwardMessage.type, forwardMessage.data !== "" ? forwardMessage.data : "", null, forwardMessage)
+                    :
+                    this.tapCoreMessageManager.constructTapTalkMessageModel(bodyValueLocation, room, CHAT_MESSAGE_TYPE_LOCATION, data)
+            ;
+
+            let _message = JSON.parse(JSON.stringify(_MESSAGE_MODEL));
+
+            _message.body = forwardMessage ? forwardMessage.body : bodyValueLocation;
+            _message.data = data;
+
+            if(quotedMessage) {
+                _message.quote.content = quotedMessage.body;
+            }
+            
+            this.tapCoreMessageManager.pushNewMessageToRoomsAndChangeLastMessage(_message);
+
+            callback(_message);
+
+            if(forwardMessage) {
+                this.tapCoreMessageManager.sendLocationMessageWithoutEmit(latitude, longitude, address, room, callback, quotedMessage, forwardMessage, forwardOnly, quoteTitle);
             }
         }
     },
