@@ -1,6 +1,6 @@
 {
   "name": "@taptalk.io/web-sdk",
-  "version": "v1.38.0",
+  "version": "v1.39.0",
   "description": "TapTalk.io Chat SDK for Web",
   "homepage": "https://taptalk.io",
   "main": "index.js",
