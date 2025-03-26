@@ -1,12 +1,9 @@
-/* 29-08-2024 22:00  v1.38.0 */
+/* 26-03-2025 00:00  v1.39.0 */
 
 // Changes:
-// 1. send location
-// 2. ws - wss
+// 1. fix handleUpdateMessage - editMessagePinned
 
-// var crypto = require('crypto');
 var define, CryptoJS;
-// var crypto = require('crypto');
 var CryptoJS = require('./lib/crypto-js');
 var md5 = require('./lib/md5');
 var tapTalkRooms = {}; //room list with array of messages
@@ -796,43 +793,45 @@ var handleUpdateMessage = (message) => {
         //delete message pinned listener
 
         //edit message pinned listener
-        var editMessagePinned = new WebWorker(() => self.addEventListener('message', function(e) {
-            let {_pinnedMessage, _pinnedMessageID, _message, isClose} = e.data;
+        if(Object.keys(taptalkPinnedMessageHashmap).length > 0 && Object.keys(taptalkPinnedMessageIDHashmap).length > 0) {
+            var editMessagePinned = new WebWorker(() => self.addEventListener('message', function(e) {
+                let {_pinnedMessage, _pinnedMessageID, _message, isClose} = e.data;
+                
+                if(!isClose) {
+                    if(_pinnedMessage[_message.room.roomID]) {
+                        let _idx = _pinnedMessage[_message.room.roomID].messages.findIndex(v => v.messageID === _message.messageID);
             
-            if(!isClose) {
-                if(_pinnedMessage[_message.room.roomID]) {
-                    let _idx = _pinnedMessage[_message.room.roomID].messages.findIndex(v => v.messageID === _message.messageID);
-        
-                    if(_idx !== -1) {
-                        _pinnedMessage[_message.room.roomID].messages[_idx] = _message;
+                        if(_idx !== -1) {
+                            _pinnedMessage[_message.room.roomID].messages[_idx] = _message;
+                        }
                     }
+            
+                    self.postMessage({
+                        result: {
+                            _taptalkPinnedMessageHashmap: _pinnedMessage,
+                            _taptalkPinnedMessageIDHashmap: _pinnedMessageID
+                        }
+                    })
+                }else {
+                    self.close();
                 }
-        
-                self.postMessage({
-                    result: {
-                        _taptalkPinnedMessageHashmap: _pinnedMessage,
-                        _taptalkPinnedMessageIDHashmap: _pinnedMessageID
-                    }
-                })
-            }else {
-                self.close();
-            }
-        }));
-        
-        editMessagePinned.postMessage({
-            _pinnedMessage: taptalkPinnedMessageHashmap,
-            _pinnedMessageID: taptalkPinnedMessageIDHashmap,
-            _message: message
-        });
-        
-        editMessagePinned.addEventListener('message', (e) => {
-            let { result } = e.data;
-        
-            taptalkPinnedMessageHashmap = result._taptalkPinnedMessageHashmap;
-            taptalkPinnedMessageIDHashmap = result._taptalkPinnedMessageIDHashmap;
-        
-            editMessagePinned.postMessage({isClose: true});
-        });
+            }));
+            
+            editMessagePinned.postMessage({
+                _pinnedMessage: taptalkPinnedMessageHashmap,
+                _pinnedMessageID: taptalkPinnedMessageIDHashmap,
+                _message: message
+            });
+            
+            editMessagePinned.addEventListener('message', (e) => {
+                let { result } = e.data;
+            
+                taptalkPinnedMessageHashmap = result._taptalkPinnedMessageHashmap;
+                taptalkPinnedMessageIDHashmap = result._taptalkPinnedMessageIDHashmap;
+            
+                editMessagePinned.postMessage({isClose: true});
+            });
+        }
         //edit message pinned listener
     }else {
         console.log("Worker is not supported");
