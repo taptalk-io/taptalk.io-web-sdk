@@ -1,7 +1,7 @@
-/* 26-03-2025 00:00  v1.39.0 */
+/* 28-10-2025 00:00  v1.40.0 */
 
 // Changes:
-// 1. fix handleUpdateMessage - editMessagePinned
+// 1. upload chatfile without indexedDB
 
 var define, CryptoJS;
 var CryptoJS = require('./lib/crypto-js');
@@ -3874,7 +3874,7 @@ exports.tapCoreMessageManager  = {
         }
     },
 
-    uploadChatFile : (data, callback) => {
+    uploadChatFile : (data, callback, saveToIndexDB = false) => {
         let url = `${baseApiUrl}/v1/chat/file/upload`;
         let uploadData = new FormData();
         let _this = this;
@@ -3885,7 +3885,9 @@ exports.tapCoreMessageManager  = {
 			readerUploadData.readAsDataURL(data.file);
 
 			readerUploadData.onload = function () {
-				addFileToDB(fileID, readerUploadData.result.split(',')[1], data.file.type);
+                if(saveToIndexDB) {
+                    addFileToDB(fileID, readerUploadData.result.split(',')[1], data.file.type);
+                }
 			};
 
 			readerUploadData.onerror = function (error) {
