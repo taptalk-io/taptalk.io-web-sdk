@@ -2,7 +2,7 @@
 
 // Changes:
 // 1. run powertalk api
-// 2. getNewerMessagesAfterTimestampMessageOnly
+// 2. getMessageListByRoomFromTimestamp
 
 var define, CryptoJS;
 var CryptoJS = require('./lib/crypto-js');
@@ -4706,8 +4706,15 @@ exports.tapCoreMessageManager = {
         }
     },
 
-    getNewerMessagesAfterTimestampMessageOnly: (payload, callback) => {
-        let url = `${baseApiUrl}/v1/chat/message/list_by_room/after`;
+    getMessageListByRoomFromTimestamp: (payload, callback) => {
+        /**
+        * @param {roomID} string - room ID
+        * @param {startTime} long - timestamp
+        * @param {endTime} long - timestamp
+        * @param {excludedMessageTypes} integer[] - array of message Type
+        */
+        let url = `${baseApiUrl}/v1/chat/taplive_message/get_list_by_room`;
+
         let _this = this;
 
         let apiAfterRequest = () => {
@@ -4715,8 +4722,8 @@ exports.tapCoreMessageManager = {
                 .then(function (response) {
                     if (response.error.code === "") {
                         var currentRoomMessages = {};
-                        
-                        let responseMessage = response.data.messages.reverse();
+
+                        let responseMessage = response.data.messages;
 
                         for (let i in responseMessage) {
                             responseMessage[i].body = decryptKey(responseMessage[i].body, responseMessage[i].localID);
