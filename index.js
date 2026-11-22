@@ -1,7 +1,8 @@
-/* 22-04-2026 00:00  v1.41.0 */
+/* 20-11-2026 00:00  v1.42.0 */
 
 // Changes:
-// 1. fix compress image file
+// 1. run powertalk api
+// 2. getMessageListByRoomFromTimestamp
 
 var define, CryptoJS;
 var CryptoJS = require('./lib/crypto-js');
@@ -1134,6 +1135,34 @@ exports.taptalkHelper = {
 }
 
 exports.taptalk = {
+    runPowertalkAPI: (config, callback) => {
+        let url = `${baseApiUrl}${config.apiURL}`;
+        let _this = this;
+
+        let apiAfterRequest = () => {
+            doXMLHTTPRequest('POST', authenticationHeader, url, config.payload)
+                .then(function (response) {
+                    if (response.error.code === "") {
+                        callback.onSuccess(response);
+                    } else {
+                        _this.taptalk.checkErrorResponse(response, callback, () => {
+                            _this.taptalk.runPowertalkAPI(config, callback)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+
+        if (_this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            apiAfterRequest();
+        }
+    },
+
     forTesting: () => {
         let data = {
             // _tapTalkEmitMessageQueue: tapTalkEmitMessageQueue,
@@ -4661,6 +4690,63 @@ exports.tapCoreMessageManager = {
                     } else {
                         _this.taptalk.checkErrorResponse(response, callback, () => {
                             _this.tapCoreMessageManager.getNewerMessagesAfterTimestamp(roomID, callback)
+                        });
+                    }
+                })
+                .catch(function (err) {
+                    console.error('there was an error!', err);
+                });
+        }
+
+        if (this.taptalk.isAuthenticated()) {
+            let userData = getLocalStorageObject('TapTalk.UserData');
+            authenticationHeader["Authorization"] = `Bearer ${userData.accessToken}`;
+
+            apiAfterRequest();
+        }
+    },
+
+    getMessageListByRoomFromTimestamp: (payload, callback) => {
+        /**
+        * @param {roomID} string - room ID
+        * @param {startTime} long - timestamp
+        * @param {endTime} long - timestamp
+        * @param {excludedMessageTypes} integer[] - array of message Type
+        */
+        let url = `${baseApiUrl}/v1/chat/taplive_message/get_list_by_room`;
+
+        let _this = this;
+
+        let apiAfterRequest = () => {
+            doXMLHTTPRequest('POST', authenticationHeader, url, payload)
+                .then(function (response) {
+                    if (response.error.code === "") {
+                        var currentRoomMessages = {};
+
+                        let responseMessage = response.data.messages;
+
+                        for (let i in responseMessage) {
+                            responseMessage[i].body = decryptKey(responseMessage[i].body, responseMessage[i].localID);
+
+                            if (responseMessage[i].data !== "") {
+                                var messageIndex = responseMessage[i];
+                                if (typeof messageIndex.data === "string") {
+                                    messageIndex.data = JSON.parse(decryptKey(messageIndex.data, messageIndex.localID));
+                                }
+                            }
+
+                            if (responseMessage[i].quote.content !== "") {
+                                var messageIndex = responseMessage[i];
+                                messageIndex.quote.content = decryptKey(messageIndex.quote.content, messageIndex.localID)
+                            }
+
+                            currentRoomMessages[responseMessage[i].localID] = responseMessage[i];
+                        }
+
+                        callback.onSuccess(currentRoomMessages);
+                    } else {
+                        _this.taptalk.checkErrorResponse(response, callback, () => {
+                            _this.tapCoreMessageManager.getNewerMessagesAfterTimestampMessageOnly(roomID, callback)
                         });
                     }
                 })
