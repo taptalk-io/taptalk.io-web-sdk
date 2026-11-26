@@ -1,8 +1,9 @@
-/* 20-11-2026 00:00  v1.42.0 */
+/* 20-11-2026 00:00  v1.43.0 */
 
 // Changes:
 // 1. run powertalk api
 // 2. getMessageListByRoomFromTimestamp
+// 3. generateHeaderQuerystring(ticket)
 
 var define, CryptoJS;
 var CryptoJS = require('./lib/crypto-js');
