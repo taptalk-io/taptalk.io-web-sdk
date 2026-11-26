@@ -1,8 +1,9 @@
-/* 20-11-2026 00:00  v1.42.0 */
+/* 20-11-2026 00:00  v1.43.0 */
 
 // Changes:
 // 1. run powertalk api
 // 2. getMessageListByRoomFromTimestamp
+// 3. generateHeaderQuerystring(ticket)
 
 var define, CryptoJS;
 var CryptoJS = require('./lib/crypto-js');
@@ -373,11 +374,11 @@ function getLocalStorageObject(storage) {
     return JSON.parse(decryptKey(localStorage.getItem(storage), KEY_PASSWORD_ENCRYPTOR));
 }
 
-function generateHeaderQuerystring() {
+function generateHeaderQuerystring(ticket) {
     let keys = {
         "content_type": authenticationHeader["Content-Type"],
         "app_key": authenticationHeader["App-Key"],
-        "authorization": `Bearer ${getLocalStorageObject('TapTalk.UserData').accessToken}`,
+        "authorization": `Bearer ${ticket ? ticket : getLocalStorageObject('TapTalk.UserData').accessToken}`,
         "device_identifier": authenticationHeader["Device-Identifier"],
         "device_model": authenticationHeader["Device-Model"],
         "device_platform": "web",
@@ -1270,7 +1271,7 @@ exports.taptalk = {
             .then(function (response) {
                 if (response.error.code === "") {
                     // _this.connect(callback);
-                    callback.onSuccess();
+                    callback.onSuccess(response);
                 } else {
                     _this.taptalk.checkErrorResponse(response, callback, () => {
                         _this.taptalk.testAccessToken(callback)
@@ -1290,7 +1291,7 @@ exports.taptalk = {
             isConnectRunning = true;
 
             this.taptalk.testAccessToken({
-                onSuccess: () => {
+                onSuccess: (response) => {
                     if (window["WebSocket"]) {
                         authenticationHeader["Authorization"] = `Bearer ${getLocalStorageObject('TapTalk.UserData').accessToken}`;
 
@@ -1301,9 +1302,9 @@ exports.taptalk = {
                         var url = ``;
 
                         if (protocol === "https") {
-                            url = `wss://${baseApiUrl.replace('https://', '')}/connect?${generateHeaderQuerystring()}`
+                            url = `wss://${baseApiUrl.replace('https://', '')}/connect?${generateHeaderQuerystring(response.data.ticket)}`
                         } else {
-                            url = `ws://${baseApiUrl.replace('http://', '')}/connect?${generateHeaderQuerystring()}`;
+                            url = `ws://${baseApiUrl.replace('http://', '')}/connect?${generateHeaderQuerystring(response.data.ticket)}`;
                         }
 
                         webSocket = new WebSocket(url);
